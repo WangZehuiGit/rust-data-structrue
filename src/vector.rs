@@ -1,7 +1,7 @@
 type	Rank = i32;
-const	DEFAULT_CAPACITY: usize = 8;
+const	DEFAULT_CAPACITY: u32 = 8;
 
-struct vector<T> {
+struct Vector<T> {
 	size: Rank,
 	capacity: usize,
 	elem: *mut T
