@@ -1,8 +1,11 @@
 extern crate rust_data_structrue;
 
-use rust_data_structrue::*;
+use rust_data_structrue::vector;
 
 #[test]
-fn test() {
-    assert_eq!(1, 2 + 3 - 4);
+fn test_capacity() {
+    let v = vector::new::<i32>();
+    if v.capacity() != 32 {
+        panic!();
+    }
 }
