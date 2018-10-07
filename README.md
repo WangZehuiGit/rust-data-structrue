@@ -1,2 +1,2 @@
 # rust-data-structrue
-my rust rust-data-structrue library
+my rust data structrue library
