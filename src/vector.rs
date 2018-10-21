@@ -44,7 +44,7 @@ impl<T> Clone for Vector<T>
 			unsafe {*((new_ptr as i32 + i) as *mut T) = (*((self.ptr as i32 + i) as *mut T)).clone()}
 		}
 		Vector::<T> {
-			ptr: self.ptr,
+			ptr: new_ptr as *mut T,
 			size: self.size,
 			capacity: self.capacity
 		}
