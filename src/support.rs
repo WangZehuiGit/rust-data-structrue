@@ -3,7 +3,8 @@ use libc:: {
 	size_t,
 	malloc,
 	free,
-	realloc
+	realloc,
+	memcpy
 };
 
 #[inline]
@@ -19,4 +20,9 @@ pub fn unsafe_realloc(ptr: *mut c_void, size: size_t) -> *mut c_void {
 #[inline]
 pub fn unsafe_free(ptr: *mut c_void) {
 	unsafe {free(ptr)};
+}
+
+#[inline]
+pub fn unsafe_memcpy(dest: *mut c_void, src: *mut c_void, n: size_t) {
+	unsafe {memcpy(dest, src, n)};
 }
