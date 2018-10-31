@@ -1,10 +1,13 @@
-use libc::c_void;
-use support::*;
+use std::alloc:: {
+	alloc,
+	dealloc,
+	Layout
+};
+use std::ptr;
 use std::mem::size_of;
 use std::ops::Index;
 use std::ops::IndexMut;
 use std::cmp::PartialEq;
-use std::marker::PhantomData;
 
 type	Rank = usize;
 const	DEFAULT_CAPACITY: usize = 8;
@@ -13,29 +16,27 @@ pub struct Vector<T>
 	where T: Clone + PartialEq {
 	size: Rank,
 	capacity: usize,
-	ptr: *mut c_void,
-	marker: PhantomData<T>
-}
+	ptr: *mut T
+}	
 
 pub fn new<T>() -> Vector<T>
 	where T: Clone + PartialEq {
+	
 	Vector {
-		ptr: unsafe_malloc(size_of::<T>() * DEFAULT_CAPACITY),
+		ptr: unsafe {alloc(Layout::from_size_align(DEFAULT_CAPACITY, size_of::<T>()).unwrap())} as *mut T,
 		size: 0 as Rank,
-		capacity: size_of::<T>() * DEFAULT_CAPACITY,
-		marker: PhantomData
+		capacity: DEFAULT_CAPACITY,
 	}
 }
 
 pub fn from_slice<T>(slice: &[T]) -> Vector<T>
 	where T: Clone + PartialEq {
-	let new_ptr = unsafe_malloc(slice.len() * size_of::<T>());
-	unsafe_memcpy(new_ptr, slice.as_ptr() as *mut c_void, slice.len() * size_of::<T>());
+	let new_ptr = unsafe {alloc(Layout::from_size_align(slice.len(), size_of::<T>()).unwrap())} as *mut T;
+	unsafe {ptr::copy(slice.as_ptr(), new_ptr, slice.len());}
 	Vector {
 		ptr: new_ptr,
 		size: slice.len(),
-		capacity: size_of::<T>() * slice.len(),
-		marker: PhantomData
+		capacity: slice.len()
 	}
 }
 
@@ -63,15 +64,21 @@ impl<T> Vector<T>
 			return;
 		}
 
-		self.ptr = unsafe_realloc(self.ptr, self.capacity + DEFAULT_CAPACITY);
-		self.capacity += DEFAULT_CAPACITY;
+		unsafe {
+			dealloc(self.ptr as *mut u8, Layout::from_size_align(self.capacity, size_of::<T>()).unwrap());
+			self.ptr = alloc(Layout::from_size_align(self.capacity * 2, size_of::<T>()).unwrap()) as *mut T;
+		}
+		self.capacity *= 2;
 	}
 	fn shrink(&mut self) {
 		if self.capacity < 2*DEFAULT_CAPACITY || self.size*4 > self.capacity {
 			return;
 		}
 		
-		self.ptr = unsafe_realloc(self.ptr, self.capacity / 2);
+		unsafe {
+			dealloc(self.ptr as *mut u8, Layout::from_size_align(self.capacity, size_of::<T>()).unwrap());
+			self.ptr = alloc(Layout::from_size_align(self.capacity / 2, size_of::<T>()).unwrap()) as *mut T;
+		}
 		self.capacity /= 2;
 	}
 }
@@ -79,14 +86,13 @@ impl<T> Vector<T>
 impl<T> Clone for Vector<T>
 	where T: Clone + PartialEq {
 	fn clone(&self) -> Self {
-		let new_ptr = unsafe_malloc(self.capacity);
+		let new_ptr = unsafe {alloc(Layout::from_size_align(self.capacity, size_of::<T>()).unwrap())} as *mut T;
 
-		unsafe_memcpy(new_ptr, self.ptr, self.size * size_of::<T>());
+		unsafe {ptr::copy(self.ptr, new_ptr, self.size);}
 		Vector {
 			ptr: new_ptr,
 			size: self.size,
-			capacity: self.capacity,
-			marker: PhantomData
+			capacity: self.capacity
 		}
 	}
 }
@@ -94,7 +100,7 @@ impl<T> Clone for Vector<T>
 impl<T> Drop for Vector<T>
 	where T: Clone + PartialEq {
 	fn drop(&mut self) {
-		unsafe_free(self.ptr as *mut c_void);
+		unsafe {dealloc(self.ptr as *mut u8, Layout::from_size_align(self.capacity, size_of::<T>()).unwrap());}
 	}
 }
 
@@ -103,13 +109,13 @@ impl<T> Index<Rank> for Vector<T>
 	type Output = T;
 
 	fn index(&self, i: Rank) -> &T {
-		unsafe {&(*((self.ptr as usize + i * size_of::<T>()) as *const T))}
+		unsafe {&(*(self.ptr.add(i)))}
 	}
 }
 
 impl<T> IndexMut<Rank> for Vector<T>
 	where T: Clone + PartialEq {
 	fn index_mut(&mut self, i: Rank) -> &mut T {
-		unsafe {&mut (*((self.ptr as usize + i * size_of::<T>()) as *mut T))}
+		unsafe {&mut (*(self.ptr.add(i)))}
 	}
 }
