@@ -63,7 +63,7 @@ impl<T> Vector<T>
 			return;
 		}
 
-		unsafe_realloc(self.ptr, self.capacity + DEFAULT_CAPACITY);
+		self.ptr = unsafe_realloc(self.ptr, self.capacity + DEFAULT_CAPACITY);
 		self.capacity += DEFAULT_CAPACITY;
 	}
 	fn shrink(&mut self) {
@@ -71,7 +71,7 @@ impl<T> Vector<T>
 			return;
 		}
 		
-		unsafe_realloc(self.ptr, self.capacity / 2);
+		self.ptr = unsafe_realloc(self.ptr, self.capacity / 2);
 		self.capacity /= 2;
 	}
 }
