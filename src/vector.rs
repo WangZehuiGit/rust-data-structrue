@@ -8,6 +8,8 @@ use std::mem::size_of;
 use std::ops::Index;
 use std::ops::IndexMut;
 use std::cmp::PartialEq;
+use std::fmt;
+use std::iter::Iterator;
 
 type	Rank = usize;
 const	DEFAULT_CAPACITY: usize = 8;
@@ -59,14 +61,35 @@ impl<T> Vector<T>
 		}
 		Option::None
 	}
+	pub fn insert(&mut self, rank: Rank, value: &T) {
+		self.expand();
+
+		for i in (rank..self.size).rev() {
+			self[i+1] = self[i].clone();
+		}
+		self[rank] = value.clone();
+		self.size += 1;
+	}
+	pub fn remove(&mut self, mut lo: Rank, mut hi: Rank) {
+		let size = hi - lo;
+		while hi < self.size {
+			self[lo] = self[hi].clone();
+			lo += 1;
+			hi += 1;
+		}
+		self.shrink();
+		self.size = size;
+	}
 	fn expand(&mut self) {
 		if (self.size as usize) < self.capacity {
 			return;
 		}
 
 		unsafe {
+			let new_ptr = alloc(Layout::from_size_align(self.capacity * 2, size_of::<T>()).unwrap()) as *mut T;
+			ptr::copy(self.ptr, new_ptr, self.size);
 			dealloc(self.ptr as *mut u8, Layout::from_size_align(self.capacity, size_of::<T>()).unwrap());
-			self.ptr = alloc(Layout::from_size_align(self.capacity * 2, size_of::<T>()).unwrap()) as *mut T;
+			self.ptr = new_ptr;
 		}
 		self.capacity *= 2;
 	}
@@ -76,8 +99,10 @@ impl<T> Vector<T>
 		}
 		
 		unsafe {
+			let new_ptr = alloc(Layout::from_size_align(self.capacity / 2, size_of::<T>()).unwrap()) as *mut T;
+			ptr::copy(self.ptr, new_ptr, self.size);
 			dealloc(self.ptr as *mut u8, Layout::from_size_align(self.capacity, size_of::<T>()).unwrap());
-			self.ptr = alloc(Layout::from_size_align(self.capacity / 2, size_of::<T>()).unwrap()) as *mut T;
+			self.ptr = new_ptr;
 		}
 		self.capacity /= 2;
 	}
@@ -109,6 +134,9 @@ impl<T> Index<Rank> for Vector<T>
 	type Output = T;
 
 	fn index(&self, i: Rank) -> &T {
+		if i >= self.size {
+			panic!("array bound!");
+		}
 		unsafe {&(*(self.ptr.add(i)))}
 	}
 }
@@ -116,6 +144,41 @@ impl<T> Index<Rank> for Vector<T>
 impl<T> IndexMut<Rank> for Vector<T>
 	where T: Clone + PartialEq {
 	fn index_mut(&mut self, i: Rank) -> &mut T {
+		if i >= self.size {
+			panic!("array bound!");
+		}
 		unsafe {&mut (*(self.ptr.add(i)))}
+	}
+}
+
+impl<T> PartialEq for Vector<T>
+	where T: Clone + PartialEq {
+	fn eq(&self, other: &Vector<T>) -> bool {
+		if self.size != other.size {
+			return false;
+		}
+		for i in 0..self.size {
+			if self[i] != other[i] {
+				return false;
+			}
+		}
+		true
+	}
+}
+
+impl<T> fmt::Debug for Vector<T>
+	where T: Clone + PartialEq + fmt::Debug {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let mut s = String::new();
+		let mut it = 0..self.size;
+
+		s.push_str(&format!("[{:?}", self[it.next().unwrap()]));
+		
+		for i in it {
+			s.push_str(&format!(", {:?}", self[i]));
+		}
+		s.push(']');
+
+		write!(f, "{}", s)
 	}
 }
