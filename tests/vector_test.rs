@@ -1,10 +1,12 @@
+#[macro_use]
 extern crate rust_data_structrue;
 
-use rust_data_structrue::vector;
+use rust_data_structrue::PriorityQueue;
+use rust_data_structrue::vector::*;
 
 #[test]
 fn test_base() {
-    let v = vector::new::<i32>();
+    let v = Vector::<i32>::new();
     assert_eq!(v.capacity(), 8);
     assert_eq!(v.len(), 0);
     assert_eq!(v.empty(), true);
@@ -12,7 +14,7 @@ fn test_base() {
 
 #[test]
 fn test_index() {
-    let mut v = vector::from_slice(&[1, 2, 3, 4]);
+    let mut v = Vector::from_slice(&[1, 2, 3, 4]);
     assert_eq!(v[3], 4);
     v[2] = 4;
     assert_eq!(v[2], 4);
@@ -20,7 +22,7 @@ fn test_index() {
 
 #[test]
 fn test_find() {
-    let v = vector::from_slice(&[1,34,354,23]);
+    let v = Vector::from_slice(&[1,34,354,23]);
     let i = v.find(&354);
     
     assert_eq!(i, Some(2));
@@ -28,7 +30,7 @@ fn test_find() {
 
 #[test]
 fn test_insert() {
-    let mut v = vector::from_slice(&[1231, 423, 12, 6]);
+    let mut v = Vector::from_slice(&[1231, 423, 12, 6]);
     v.insert(2, &8);
     assert_eq!(v[2], 8);
     assert_eq!(v[4], 6);
@@ -38,7 +40,7 @@ fn test_insert() {
 
 #[test]
 fn test_remove() {
-    let mut v = vector::from_slice(&[132, 5, 632, 90, 666]);
+    let mut v = Vector::from_slice(&[132, 5, 632, 90, 666]);
     v.remove(1, 3);
     assert_eq!(v[1], 90);
     assert_eq!(v.len(), 3);
@@ -46,7 +48,7 @@ fn test_remove() {
 
 #[test]
 fn test_eq() {
-    let v = vector::from_slice(&[32, 5]);
+    let v = Vector::from_slice(&[32, 5]);
     let o = v.clone();
 
     assert_eq!(v, o);
@@ -54,10 +56,20 @@ fn test_eq() {
 
 #[test]
 fn test_deref() {
-    let mut v = vector::from_slice(&[324, 53, 6, 36]);
+    let mut v = Vector::from_slice(&[324, 53, 6, 36]);
     let o = Vec::from(&[324, 53, 6, 36][..]);
 
     assert_eq!(*v, *o);
     (*v)[3] = 9;
     assert_eq!(v[3], 9);
+}
+
+#[test]
+fn test_pqv() {
+    let mut v = pq_vec![5, 7, 32, 6, 9];
+
+    assert_eq!(5, v.size());
+    assert_eq!(32, v.del_max());
+    assert_eq!(&9, v.get_max());
+    assert_eq!(4, v.size());
 }
