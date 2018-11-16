@@ -38,10 +38,10 @@ fn test_insert() {
 
 #[test]
 fn test_remove() {
-    let mut v = vector::from_slice(&[132, 5, 632, 90]);
+    let mut v = vector::from_slice(&[132, 5, 632, 90, 666]);
     v.remove(1, 3);
     assert_eq!(v[1], 90);
-    assert_eq!(v.len(), 2);
+    assert_eq!(v.len(), 3);
 }
 
 #[test]
@@ -50,4 +50,14 @@ fn test_eq() {
     let o = v.clone();
 
     assert_eq!(v, o);
+}
+
+#[test]
+fn test_deref() {
+    let mut v = vector::from_slice(&[324, 53, 6, 36]);
+    let o = Vec::from(&[324, 53, 6, 36][..]);
+
+    assert_eq!(*v, *o);
+    (*v)[3] = 9;
+    assert_eq!(v[3], 9);
 }
