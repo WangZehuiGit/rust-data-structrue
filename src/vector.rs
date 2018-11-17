@@ -1,31 +1,11 @@
-use std::alloc:: {
-	alloc,
-	dealloc,
-	Layout,
-	LayoutErr
-};
+use super::{malloc, free};
 use std::ptr;
-use std::mem::{align_of, size_of};
 use std::ops::{Index, IndexMut, Deref, DerefMut};
 use std::cmp::PartialEq;
 use std::fmt;
 
 type	Rank = usize;
 const	DEFAULT_CAPACITY: usize = 8;
-
-fn malloc<T>(capacity: usize) -> Result<*mut T, LayoutErr> {
-	let result = Layout::from_size_align(capacity * size_of::<T>(), align_of::<T>());
-	match result {
-		Err(layout_err) => return Err(layout_err),
-		Ok(layout) => unsafe {Ok(alloc(layout) as *mut T)}
-	}
-}
-
-fn free<T>(ptr: *mut T, capacity: usize) -> Result<(), LayoutErr> {
-	let layout = Layout::from_size_align(capacity * size_of::<T>(), align_of::<T>())?;
-	unsafe {dealloc(ptr as *mut u8, layout);}
-	Ok(())
-}
 
 pub struct Vector<T>
 	where T: Clone + PartialEq {
