@@ -8,7 +8,8 @@ type	Rank = usize;
 const	DEFAULT_CAPACITY: usize = 8;
 
 pub struct Vector<T>
-	where T: Clone + PartialEq {
+	where T: Clone + PartialEq
+{
 	len: Rank,
 	capacity: usize,
 	ptr: *mut T
@@ -16,7 +17,8 @@ pub struct Vector<T>
 
 impl<T> Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	pub fn new() -> Vector<T> {
 		Vector {
 			ptr: malloc(DEFAULT_CAPACITY).unwrap(),
@@ -105,7 +107,8 @@ where
 
 impl<T> Clone for Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq
+{
 	fn clone(&self) -> Self {
 		let new_ptr = malloc(self.capacity).unwrap();
 
@@ -120,7 +123,8 @@ where
 
 impl<T> Drop for Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	fn drop(&mut self) {
 		free(self.ptr, self.capacity).unwrap();
 	}
@@ -128,7 +132,8 @@ where
 
 impl<T> Index<Rank> for Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	type Output = T;
 
 	fn index(&self, i: Rank) -> &T {
@@ -141,7 +146,8 @@ where
 
 impl<T> IndexMut<Rank> for Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	fn index_mut(&mut self, i: Rank) -> &mut T {
 		if i >= self.len {
 			panic!("array bound!");
@@ -152,7 +158,8 @@ where
 
 impl<T> Deref for Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	type Target = [T];
 
 	fn deref(&self) -> &[T] {
@@ -162,7 +169,8 @@ where
 
 impl<T> DerefMut for Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	fn deref_mut(&mut self) -> &mut [T] {
 		unsafe {std::slice::from_raw_parts_mut(self.ptr, self.len)}
 	}
@@ -170,7 +178,8 @@ where
 
 impl<T> PartialEq for Vector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	fn eq(&self, other: &Vector<T>) -> bool {
 		if self.len != other.len {
 			return false;
@@ -186,7 +195,8 @@ where
 
 impl<T> fmt::Debug for Vector<T>
 where
-	T: Clone + PartialEq + fmt::Debug {
+	T: Clone + PartialEq + fmt::Debug 
+{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		let mut s = String::new();
 		let mut it = 0..self.len;
@@ -204,13 +214,15 @@ where
 
 pub struct PriorityQueueVector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	vec: Vector<T>
 }
 
 impl<T> PriorityQueueVector<T>
 where
-	T: Clone + PartialEq {
+	T: Clone + PartialEq 
+{
 	pub fn new() -> PriorityQueueVector<T> {
 		PriorityQueueVector {
 			vec: Vector::<T>::new()
@@ -220,7 +232,8 @@ where
 
 impl<T> super::PriorityQueue<T> for PriorityQueueVector<T>
 where
-	T: Clone + PartialOrd {
+	T: Clone + PartialOrd 
+{
 	fn size(&self) -> usize {
 		self.vec.len()
 	}
