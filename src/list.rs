@@ -1,87 +1,59 @@
 use super::{malloc_val, free};
 use std::clone::Clone;
 use std::ptr::{self, NonNull};
-use std::iter::{Iterator,DoubleEndedIterator};
-use std::ops::{Deref, DerefMut};
-use std::marker::Copy;
+use std::iter::Iterator;
+use std::marker::{Copy, PhantomData};
+use std::ops::{Deref, DerefMut, Drop};
 
 type Link<T> = Option<NonNull<Node<T>>>;
 
-pub struct Iter<T>(Link<T>);
+pub struct Iter<'a, T: 'a>(Link<T>, PhantomData<&'a T>);
 
-impl<T> Clone for Iter<T> {
-    fn clone(&self) -> Iter<T> {
-        let Iter(link) = self;
-        Iter(*link)
+impl<'a, T> Clone for Iter<'a, T> {
+    fn clone(&self) -> Iter<'a, T> {
+        let Iter(link, PhantomData) = self;
+        Iter(*link, PhantomData)
     }
 }
 
-impl<T> Copy for Iter<T> {}
+impl<'a, T> Copy for Iter<'a, T> {}
 
-impl<T> Deref for Iter<T> {
-    type Target = T;
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a mut T;
 
-    fn deref(&self) -> &T {
-        if let Iter(Some(node)) = self {
-            return unsafe {&(node.as_ref().data)};
-        } else {
-            panic!("error! this is a None.");
-        }
-    }
-}
-
-impl<T> DerefMut for Iter<T> {
-    fn deref_mut(&mut self) -> &mut T {
-       if let Iter(Some(node)) = self {
-            return unsafe {&mut (node.as_mut().data)};
-        } else {
-            panic!("error! this is a None.");
-        }
-    }
-}
-
-impl<T> Iterator for Iter<T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<T> {
-        if let Iter(Some(node)) = *self {
-            let nxt = unsafe {Some(ptr::read(self.deref_mut() as *mut T))};
-            *self = unsafe {Iter(node.as_ref().succ)};
-            return nxt;
+    fn next(&mut self) -> Option<&'a mut T> {
+        let succ: Link<T>;
+        let nxt: Option<&'a mut T>;
+        if let Iter(Some(node), PhantomData) = self {
+            nxt = unsafe {Some(&mut (*node.as_ptr()).data)};
+            unsafe {
+                succ = node.as_ref().succ();
+            }
         } else {
             return None;
         }
-    }
-}
 
-impl<T> DoubleEndedIterator for Iter<T> {
-    fn next_back(&mut self) -> Option<T> {
-        if let Iter(Some(node)) = *self {
-            let nxt = unsafe {Some(ptr::read(self.deref_mut() as *mut T))};
-            *self = unsafe {Iter(node.as_ref().pred)};
-            return nxt;
-        } else {
-            return None;
-        }
+        *self = Iter(succ, PhantomData);
+        return nxt;
     }
 }
 
 pub struct Node<T> {
-    data: T,
+    pub data: T,
     pred: Link<T>,
     succ: Link<T>
 }
 
-impl<T: Clone> Node<T> {
+impl<T> Node<T> {
     fn new(value: &T, posi0: Link<T>, posi1: Link<T>) -> Self {
         Node {
-            data: value.clone(),
+            data: unsafe {ptr::read(value as *const T)},
             pred: posi0,
             succ: posi1
         }
     }
 
-    pub fn insert_as_pred(&mut self, value: &T) {
+    fn insert_as_pred(&mut self, value: &T) {
         match self.pred {
             Some(mut node) => unsafe {
                 node.as_mut().succ = NonNull::new(
@@ -97,7 +69,7 @@ impl<T: Clone> Node<T> {
         }
     }
 
-    pub fn insert_as_succ(&mut self, value: &T) {
+    fn insert_as_succ(&mut self, value: &T) {
         match self.succ {
             Some(mut node) => unsafe {
                 node.as_mut().pred = NonNull::new(
@@ -106,11 +78,33 @@ impl<T: Clone> Node<T> {
                 self.succ = node.as_mut().pred;
             },
             _ => {
-                self.pred = NonNull::new(
+                self.succ = NonNull::new(
                     malloc_val(&(Node::new(value, NonNull::new(self as *mut Self), None)))
                 );
             }
         }
+    }
+
+    pub fn pred(&self) -> Link<T> {
+        self.pred
+    }
+
+    pub fn succ(&self) -> Link<T> {
+        self.succ
+    }
+}
+
+impl<T> Deref for Node<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.data
+    }
+}
+
+impl<T> DerefMut for Node<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        &mut self.data
     }
 }
 
@@ -120,7 +114,7 @@ pub struct List<T> {
     len: usize
 }
 
-impl<T: Clone> List<T> {
+impl<T> List<T> {
     pub fn new() -> Self {
         List::<T> {
             head: None,
@@ -140,59 +134,84 @@ impl<T: Clone> List<T> {
         false
     }
 
-    pub fn first(&mut self) -> Iter<T> {
-        Iter(self.head)
+    pub fn first(&mut self) -> Option<&mut Node<T>> {
+        unsafe {
+            if let Some(node) = self.head {
+                Some(&mut *(node.as_ptr()))
+            } else {
+                None
+            }
+        }
     }
 
-    pub fn last(&mut self) -> Iter<T> {
-        Iter(self.trail)
+    pub fn last(&mut self) -> Option<&mut Node<T>> {
+        unsafe {
+            if let Some(node) = self.trail {
+                Some(&mut *(node.as_ptr()))
+            } else {
+                None
+            }
+        }
     }
 
-    pub fn get(&mut self, index: usize) -> Iter<T> {
+    pub fn iter(&mut self) -> Iter<T> {
+        Iter(self.head, PhantomData)
+    }
+
+    pub fn get(&mut self, index: usize) -> Option<&mut Node<T>> {
         if index >= self.len {
-            return Iter(None);
+            return None;
         }
         
-        let mut it: Iter<T>;
+        let mut ptr: Option<&mut Node<T>>;
 
         if index <= self.len/2 {
-            it = self.first();
+            ptr = self.first();
             for _ in 0..index {
-                it.next();
+                unsafe {
+                    ptr = Some(&mut *(ptr.unwrap().succ().unwrap().as_ptr()));
+                }
             }
         } else {
-            it = self.last();
-            for _ in 0..(self.len-index) {
-                it.next_back();
+            let len = self.len;
+            ptr = self.last();
+            for _ in 0..(len-index) {
+                unsafe {
+                    ptr = Some(&mut *(ptr.unwrap().succ().unwrap().as_ptr()));
+                }
             }
         }
 
-        it
+        ptr
     }
 
     pub fn insert(&mut self, index: usize, value: &T) {
-        if let Iter(Some(mut node)) = self.get(index) {
-            unsafe {
-                node.as_mut().insert_as_pred(value);
-                if index == 0 {
-                    self.head = node.as_ref().pred;
-                }
+        let mut head: Option<NonNull<Node<T>>> = self.head;
+        let mut trail: Option<NonNull<Node<T>>> = self.trail;
+        let len = self.len;
+        let last = self.trail;
+        if let Some(node) = self.get(index) {
+            node.insert_as_pred(value);
+            if index == 0 {
+                head = node.pred;
             }
-        } else if self.len == 0 {
+        } else if index == 0 {
             let node = NonNull::new(malloc_val(&Node::new(value, None, None)));
-            self.head = node;
-            self.trail = node;
-        } else if index == self.len {
-            if let Some(mut end) = self.trail {
+            head = node;
+            trail = node;
+        } else if index == len {
+            if let Some(mut end) = last {
                 unsafe {
                     end.as_mut().insert_as_succ(value);
-                    self.trail = end.as_ref().succ;
+                    trail = end.as_ref().succ;
                 }   
             }
         } else {
             panic!("bound error!");
         }
 
+        self.head = head;
+        self.trail = trail;
         self.len += 1;
     }
 
@@ -200,38 +219,71 @@ impl<T: Clone> List<T> {
         if lo >= hi || hi > self.len {
             panic!("bound error!");
         }
-        let mut it = self.get(lo);
-        let mut begin = self.get(lo);
-        begin.next_back();
-        unsafe {
-            for _ in 0..(hi - lo) {
-                let mut tmp = it;
-                it.next();
-                if let Iter(Some(mut node)) = tmp {
-                    free(node.as_mut(), 1).unwrap();
+
+        let mut head = self.head;
+        let mut trail = self.trail;
+
+        if let Some(mut it) = self.get(lo) {
+            let begin = it.pred();
+            let mut end = it.succ();
+
+            unsafe {
+                for _ in 0..(hi - lo) {
+                    let mut tmp = it as *mut Node<T>;
+                    end = it.succ();
+                    free(tmp, 1).unwrap();
+                    if let Some(node) = end {
+                        it = &mut *(node.as_ptr())
+                    }
                 }
             }
-        }
-        unsafe {
-            if let Iter(Some(mut end)) = it {
-                if let Iter(Some(mut node)) = begin {
-                    end.as_mut().pred = Some(node);
-                    node.as_mut().succ = Some(end);
+            unsafe {
+                if let Some(mut end) = end {
+                    if let Some(mut node) = begin {
+                        end.as_mut().pred = Some(node);
+                        node.as_mut().succ = Some(end);
+                    } else {
+                        end.as_mut().pred = None;
+                        head = Some(end);
+                    }
                 } else {
-                    end.as_mut().pred = None;
-                    self.head = Some(end);
-                }
-            } else {
-                if let Iter(Some(mut node)) = begin {
-                    node.as_mut().pred = None;
-                    self.trail = Some(node);
-                } else {
-                    self.head = None;
-                    self.trail = None;
+                    if let Some(mut node) = begin {
+                        node.as_mut().pred = None;
+                        trail = Some(node);
+                    } else {
+                        head = None;
+                        trail = None;
+                    }
                 }
             }
         }
 
+        self.head = head;
+        self.trail = trail;
         self.len -= hi - lo;
     }
+}
+
+impl<T> Drop for List<T> {
+    fn drop(&mut self) {
+        let len = self.len;
+
+        if len != 0 {
+            self.remove(0, len);
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! list {
+    ($($e: expr), *) => (
+        {
+            let mut tmp = List::new();
+            $(
+                let len = tmp.len();
+                tmp.insert(len, &$e);
+            )*
+            tmp
+        }
+    )
 }

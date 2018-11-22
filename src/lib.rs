@@ -5,6 +5,7 @@ use std::alloc:: {
 	LayoutErr
 };
 use std::mem::{align_of, size_of};
+use std::ptr;
 
 pub mod vector;
 pub mod list;
@@ -26,7 +27,9 @@ fn malloc<T>(capacity: usize) -> Result<*mut T, LayoutErr> {
 
 fn malloc_val<T>(value: &T) -> *mut T {
 	let layout = Layout::for_value(value);
-	unsafe {alloc(layout) as *mut T}
+	let ptr = unsafe {alloc(layout) as *mut T};
+	unsafe {*ptr = ptr::read(value as *const T)};
+	ptr
 }
 
 fn free<T>(ptr: *mut T, capacity: usize) -> Result<(), LayoutErr> {
