@@ -40,3 +40,26 @@ fn test_iter() {
         assert_eq!(1, *n);
     }
 }
+
+#[test]
+fn test_find() {
+    let mut l = list![23, 63, 11, 40, 2346];
+
+    if let Some(node) = l.find(&11, 0, 5) {
+        assert_eq!(node.data, 11);
+    } else {
+        panic!("error in test_find!");
+    }
+}
+
+#[test]
+fn test_deduplicate() {
+    let mut l = list![1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0];
+    let arr = [1234, 3, 6, 0, 54, 531, 213];
+
+    l.deduplicate();
+    assert_eq!(l.len(), arr.len());
+    for (i, n) in l.iter().enumerate() {
+        assert_eq!(arr[i], *n);
+    }
+}

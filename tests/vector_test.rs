@@ -1,7 +1,4 @@
-#[macro_use]
 extern crate rust_data_structrue;
-
-use rust_data_structrue::PriorityQueue;
 use rust_data_structrue::vector::*;
 
 #[test]
@@ -62,14 +59,4 @@ fn test_deref() {
     assert_eq!(*v, *o);
     (*v)[3] = 9;
     assert_eq!(v[3], 9);
-}
-
-#[test]
-fn test_pqv() {
-    let mut v = pq_vec![5, 7, 32, 6, 9];
-
-    assert_eq!(5, v.size());
-    assert_eq!(32, v.del_max());
-    assert_eq!(&9, v.get_max());
-    assert_eq!(4, v.size());
 }

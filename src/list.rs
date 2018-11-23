@@ -3,7 +3,8 @@ use std::clone::Clone;
 use std::ptr::{self, NonNull};
 use std::iter::Iterator;
 use std::marker::{Copy, PhantomData};
-use std::ops::{Deref, DerefMut, Drop};
+use std::ops::Drop;
+use std::cmp::PartialEq;
 
 type Link<T> = Option<NonNull<Node<T>>>;
 
@@ -94,20 +95,6 @@ impl<T> Node<T> {
     }
 }
 
-impl<T> Deref for Node<T> {
-    type Target = T;
-
-    fn deref(&self) -> &T {
-        &self.data
-    }
-}
-
-impl<T> DerefMut for Node<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        &mut self.data
-    }
-}
-
 pub struct List<T> {
     head: Link<T>,
     trail: Link<T>,
@@ -186,8 +173,8 @@ impl<T> List<T> {
     }
 
     pub fn insert(&mut self, index: usize, value: &T) {
-        let mut head: Option<NonNull<Node<T>>> = self.head;
-        let mut trail: Option<NonNull<Node<T>>> = self.trail;
+        let mut head = self.head;
+        let mut trail = self.trail;
         let len = self.len;
         let last = self.trail;
         if let Some(node) = self.get(index) {
@@ -224,13 +211,13 @@ impl<T> List<T> {
         let mut trail = self.trail;
 
         if let Some(mut it) = self.get(lo) {
-            let begin = it.pred();
-            let mut end = it.succ();
+            let begin = it.pred;
+            let mut end = it.succ;
 
             unsafe {
                 for _ in 0..(hi - lo) {
                     let mut tmp = it as *mut Node<T>;
-                    end = it.succ();
+                    end = it.succ;
                     free(tmp, 1).unwrap();
                     if let Some(node) = end {
                         it = &mut *(node.as_ptr())
@@ -261,6 +248,64 @@ impl<T> List<T> {
         self.head = head;
         self.trail = trail;
         self.len -= hi - lo;
+    }
+}
+
+impl<T: PartialEq> List<T> {
+    pub fn find(&mut self, value: &T, lo: usize, hi: usize) -> Option<&mut Node<T>> {
+        let mut it = self.get(lo);
+        let mut cnt = 0usize;
+
+        unsafe {
+            while let Some(node) = it {
+                if cnt == hi {
+                    break;
+                }
+
+                cnt += 1;
+
+                if *value == node.data {
+                    return Some(node);
+                }
+
+                if let Some(new) = node.succ {
+                    it = Some(&mut *(new.as_ptr()));
+                } else {
+                    break;
+                }
+            }
+        }
+
+        None
+    }
+
+    pub fn deduplicate(&mut self) {
+        if self.len < 2 {
+            return;
+        }
+
+        let mut it = self.head;
+
+        unsafe {
+            while let Some(node) = it {
+                let mut next = node.as_ref().succ();
+                while let Some(mut other) = next {
+                    next = other.as_ref().succ();
+                    if node.as_ref().data == other.as_ref().data {
+                        let pred = other.as_ref().pred;
+                        pred.unwrap().as_mut().succ = next;
+                        if let Some(mut next) = next {
+                            next.as_mut().pred = pred;
+                        } else {
+                            self.trail = pred;
+                        }
+                        free(other.as_mut(), 1).unwrap();
+                        self.len -= 1;
+                    }
+                }
+                it = node.as_ref().succ;
+            }
+        }
     }
 }
 
