@@ -9,6 +9,7 @@ use std::ptr;
 
 pub mod vector;
 pub mod list;
+pub mod stack;
 pub mod queue;
 
 fn malloc<T>(capacity: usize) -> Result<*mut T, LayoutErr> {

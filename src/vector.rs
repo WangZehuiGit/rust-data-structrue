@@ -7,18 +7,13 @@ use std::fmt;
 type	Rank = usize;
 const	DEFAULT_CAPACITY: usize = 8;
 
-pub struct Vector<T>
-	where T: Clone + PartialEq
-{
+pub struct Vector<T> {
 	len: Rank,
 	capacity: usize,
 	ptr: *mut T
 }	
 
-impl<T> Vector<T>
-where
-	T: Clone + PartialEq 
-{
+impl<T> Vector<T> {
 	pub fn new() -> Vector<T> {
 		Vector {
 			ptr: malloc(DEFAULT_CAPACITY).unwrap(),
@@ -49,28 +44,19 @@ where
 		self.len == 0
 	}
 
-	pub fn find(&self, e: &T) -> Option<Rank> {
-		for i in 0..self.len {
-			if self[i] == *e {
-				return Option::Some(i);
-			}
-		}
-		Option::None
-	}
-
 	pub fn insert(&mut self, rank: Rank, value: &T) {
 		self.expand();
 		self.len += 1;
 		for i in (rank..(self.len-1)).rev() {
-			self[i+1] = self[i].clone();
+			unsafe {self[i+1] = ptr::read(&self[i]);}
 		}
-		self[rank] = value.clone();
+		unsafe {self[rank] = ptr::read(value);}
 	}
 
 	pub fn remove(&mut self, mut lo: Rank, mut hi: Rank) {
 		let size = hi - lo;
 		while hi < self.len {
-			self[lo] = self[hi].clone();
+			unsafe {self[lo] = ptr::read(&self[hi]);}
 			lo += 1;
 			hi += 1;
 		}
@@ -105,10 +91,18 @@ where
 	}
 }
 
-impl<T> Clone for Vector<T>
-where
-	T: Clone + PartialEq
-{
+impl<T: PartialEq> Vector<T> {
+	pub fn find(&self, e: &T) -> Option<Rank> {
+		for i in 0..self.len {
+			if self[i] == *e {
+				return Option::Some(i);
+			}
+		}
+		Option::None
+	}
+}
+
+impl<T> Clone for Vector<T> {
 	fn clone(&self) -> Self {
 		let new_ptr = malloc(self.capacity).unwrap();
 
@@ -121,19 +115,13 @@ where
 	}
 }
 
-impl<T> Drop for Vector<T>
-where
-	T: Clone + PartialEq 
-{
+impl<T> Drop for Vector<T> {
 	fn drop(&mut self) {
 		free(self.ptr, self.capacity).unwrap();
 	}
 }
 
-impl<T> Index<Rank> for Vector<T>
-where
-	T: Clone + PartialEq 
-{
+impl<T> Index<Rank> for Vector<T> {
 	type Output = T;
 
 	fn index(&self, i: Rank) -> &T {
@@ -144,10 +132,7 @@ where
 	}
 }
 
-impl<T> IndexMut<Rank> for Vector<T>
-where
-	T: Clone + PartialEq 
-{
+impl<T> IndexMut<Rank> for Vector<T> {
 	fn index_mut(&mut self, i: Rank) -> &mut T {
 		if i >= self.len {
 			panic!("array bound!");
@@ -156,10 +141,7 @@ where
 	}
 }
 
-impl<T> Deref for Vector<T>
-where
-	T: Clone + PartialEq 
-{
+impl<T> Deref for Vector<T> {
 	type Target = [T];
 
 	fn deref(&self) -> &[T] {
@@ -167,10 +149,7 @@ where
 	}
 }
 
-impl<T> DerefMut for Vector<T>
-where
-	T: Clone + PartialEq 
-{
+impl<T> DerefMut for Vector<T> {
 	fn deref_mut(&mut self) -> &mut [T] {
 		unsafe {std::slice::from_raw_parts_mut(self.ptr, self.len)}
 	}
@@ -178,7 +157,7 @@ where
 
 impl<T> PartialEq for Vector<T>
 where
-	T: Clone + PartialEq 
+	T: PartialEq 
 {
 	fn eq(&self, other: &Vector<T>) -> bool {
 		if self.len != other.len {
@@ -195,7 +174,7 @@ where
 
 impl<T> fmt::Debug for Vector<T>
 where
-	T: Clone + PartialEq + fmt::Debug 
+	T: fmt::Debug 
 {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		let mut s = String::new();
