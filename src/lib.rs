@@ -11,6 +11,7 @@ pub mod vector;
 pub mod list;
 pub mod stack;
 pub mod queue;
+pub mod bin_tree;
 
 fn malloc<T>(capacity: usize) -> Result<*mut T, LayoutErr> {
 	let result = Layout::from_size_align(capacity * size_of::<T>(), align_of::<T>());

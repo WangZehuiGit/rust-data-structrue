@@ -121,7 +121,7 @@ impl<T> List<T> {
         false
     }
 
-    pub fn first(&mut self) -> Option<&mut Node<T>> {
+    pub fn first_mut(&mut self) -> Option<&mut Node<T>> {
         unsafe {
             if let Some(node) = self.head {
                 Some(&mut *(node.as_ptr()))
@@ -131,7 +131,15 @@ impl<T> List<T> {
         }
     }
 
-    pub fn last(&mut self) -> Option<&mut Node<T>> {
+    pub fn first(&mut self) -> Option<&Node<T>> {
+        if let Some(node) = self.first_mut() {
+            Some(node)
+        } else {
+            None
+        }
+    }
+
+    pub fn last_mut(&mut self) -> Option<&mut Node<T>> {
         unsafe {
             if let Some(node) = self.trail {
                 Some(&mut *(node.as_ptr()))
@@ -141,11 +149,19 @@ impl<T> List<T> {
         }
     }
 
+    pub fn last(&mut self) -> Option<&Node<T>> {
+        if let Some(node) = self.last_mut() {
+            Some(node)
+        } else {
+            None
+        }
+    }
+
     pub fn iter(&mut self) -> Iter<T> {
         Iter(self.head, PhantomData)
     }
 
-    pub fn get(&mut self, index: usize) -> Option<&mut Node<T>> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Node<T>> {
         if index >= self.len {
             return None;
         }
@@ -153,7 +169,7 @@ impl<T> List<T> {
         let mut ptr: Option<&mut Node<T>>;
 
         if index <= self.len/2 {
-            ptr = self.first();
+            ptr = self.first_mut();
             for _ in 0..index {
                 unsafe {
                     ptr = Some(&mut *(ptr.unwrap().succ().unwrap().as_ptr()));
@@ -161,7 +177,7 @@ impl<T> List<T> {
             }
         } else {
             let len = self.len;
-            ptr = self.last();
+            ptr = self.last_mut();
             for _ in 0..(len-index) {
                 unsafe {
                     ptr = Some(&mut *(ptr.unwrap().succ().unwrap().as_ptr()));
@@ -172,12 +188,20 @@ impl<T> List<T> {
         ptr
     }
 
+    pub fn get(&mut self, index: usize) -> Option<&Node<T>> {
+        if let Some(node) = self.get_mut(index) {
+            Some(node)
+        } else {
+            None
+        }
+    }
+
     pub fn insert(&mut self, index: usize, value: &T) {
         let mut head = self.head;
         let mut trail = self.trail;
         let len = self.len;
         let last = self.trail;
-        if let Some(node) = self.get(index) {
+        if let Some(node) = self.get_mut(index) {
             node.insert_as_pred(value);
             if index == 0 {
                 head = node.pred;
@@ -210,7 +234,7 @@ impl<T> List<T> {
         let mut head = self.head;
         let mut trail = self.trail;
 
-        if let Some(mut it) = self.get(lo) {
+        if let Some(mut it) = self.get_mut(lo) {
             let begin = it.pred;
             let mut end = it.succ;
 
@@ -252,8 +276,8 @@ impl<T> List<T> {
 }
 
 impl<T: PartialEq> List<T> {
-    pub fn find(&mut self, value: &T, lo: usize, hi: usize) -> Option<&mut Node<T>> {
-        let mut it = self.get(lo);
+    pub fn find_mut(&mut self, value: &T, lo: usize, hi: usize) -> Option<&mut Node<T>> {
+        let mut it = self.get_mut(lo);
         let mut cnt = 0usize;
 
         unsafe {
@@ -277,6 +301,14 @@ impl<T: PartialEq> List<T> {
         }
 
         None
+    }
+
+    pub fn find(&mut self, value: &T, lo: usize, hi: usize) -> Option<&Node<T>> {
+        if let Some(node) = self.find_mut(value, lo, hi) {
+            Some(node)
+        } else {
+            None
+        }
     }
 
     pub fn deduplicate(&mut self) {
