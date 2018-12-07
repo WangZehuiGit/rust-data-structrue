@@ -6,10 +6,7 @@ pub trait Queue<T> {
     fn empty(&self) -> bool;
     fn enqueue(&mut self, value: &T);
     fn dequeue(&mut self) -> T;
-    fn front_mut(&mut self) -> &mut T;
-    fn front(&mut self) -> &T {
-        self.front_mut()
-    }
+    fn front(&mut self) -> &mut T;
 }
 
 pub trait PriorityQueue<V: std::cmp::PartialOrd> : Queue<V> {
@@ -42,22 +39,22 @@ impl<T> Queue<T> for QueueList<T> {
             panic!("this queue is empty");
         }
         unsafe {
-            let out = ptr::read(&self.list.first().unwrap().data);
+            let out = ptr::read(&(self.list[0]));
             self.list.remove(size - 1, size);
 
             out
         }
     }
 
-    fn front_mut(&mut self) -> &mut T {
+    fn front(&mut self) -> &mut T {
         if self.size() == 0 {
             panic!("this queue is empty");
         }
-        &mut self.list.first_mut().unwrap().data
+        &mut self.list[0]
     }
 }
 
-impl<T> QueueList<T> {
+impl<T: Default> QueueList<T> {
     pub fn new() -> Self {
         QueueList {
             list: List::new()

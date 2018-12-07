@@ -12,22 +12,16 @@ pub struct BinNode<T> {
     pub data: T,
     parent: Option<NonNull<BinNode<T>>>,
     lc: Option<NonNull<BinNode<T>>>,
-    rc: Option<NonNull<BinNode<T>>>,
-    height: usize,
-    color: Color
+    rc: Option<NonNull<BinNode<T>>>
 }
 
 impl<T> BinNode<T> {
-    fn new (
-        value: &T, parent: NodePtr<T>, lc: NodePtr<T>, rc: NodePtr<T>, height: usize, color: Color
-    ) -> Self {
+    fn new (value: &T, parent: NodePtr<T>, lc: NodePtr<T>, rc: NodePtr<T>) -> Self {
         BinNode {
             data: unsafe {ptr::read(value)},
             parent: parent,
             lc: lc,
-            rc: rc,
-            height: height,
-            color: color
+            rc: rc
         }
     }
 
@@ -67,9 +61,7 @@ impl<T> BinNode<T> {
         if let None = self.lc {
             self.lc = NonNull::new (
                 malloc_val (
-                    &BinNode::new (
-                        value, NonNull::new(self as *mut BinNode<T>), None, None, 0, Color::BLACK
-                    )
+                    &BinNode::new(value, NonNull::new(self), None, None)
                 )
             );
             return Ok(());
@@ -82,9 +74,7 @@ impl<T> BinNode<T> {
         if let None = self.rc {
             self.rc = NonNull::new (
                 malloc_val (
-                    &BinNode::new (
-                        value, NonNull::new(self as *mut BinNode<T>), None, None, 0, Color::BLACK
-                    )
+                    &BinNode::new (value, NonNull::new(self), None, None)
                 )
             );
             return Ok(());

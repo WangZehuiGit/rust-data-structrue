@@ -44,6 +44,15 @@ impl<T> Vector<T> {
 		self.len == 0
 	}
 
+	pub fn map<F>(&mut self, mut func: F, lo: usize, hi: usize)
+    where
+        F: FnMut(&mut T)
+    {
+        for i in lo..hi {
+			func(self.index_mut(i));
+		}
+    }
+
 	pub fn insert(&mut self, rank: Rank, value: &T) {
 		self.expand();
 		self.len += 1;

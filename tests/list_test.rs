@@ -6,7 +6,7 @@ use rust_data_structrue::list::*;
 #[test]
 fn test_base() {
     let l = List::<i32>::new();
-    
+
     assert_eq!(l.len(), 0);
     assert!(l.empty());
 }
@@ -16,28 +16,28 @@ fn test_insert_remove() {
     let mut l = List::<i32>::new();
 
     l.insert(0, &1);
-    assert_eq!(l.first().unwrap().data, 1);
+    assert_eq!(l[0], 1);
     l.insert(1, &7);
-    assert_eq!(l.last().unwrap().data, 7);
+    assert_eq!(l[1], 7);
     l.remove(0, 2);
     assert!(l.empty());
 }
 
 #[test]
-fn test_iter() {
+fn test_index() {
     let mut l = list![21, 5, 534, 0, 23];
     let arr = [21, 5, 534, 0, 23];
 
-    for (i, n) in l.iter().enumerate() {
-        assert_eq!(arr[i], *n);
+    for i in 0..l.len() {
+        assert_eq!(arr[i], l[i]);
     }
 
-    for n in l.iter() {
-        *n = 1;
+    for i in 0..l.len() {
+        l[i] = 1;
     }
 
-    for n in l.iter() {
-        assert_eq!(1, *n);
+    for i in 0..l.len() {
+        assert_eq!(1, l[i]);
     }
 }
 
@@ -45,8 +45,8 @@ fn test_iter() {
 fn test_find() {
     let mut l = list![23, 63, 11, 40, 2346];
 
-    if let Some(node) = l.find(&11, 0, 5) {
-        assert_eq!(node.data, 11);
+    if let Some(index) = l.find(&11, 0, 5) {
+        assert_eq!(l[index], 11);
     } else {
         panic!("error in test_find!");
     }
@@ -59,7 +59,18 @@ fn test_deduplicate() {
 
     l.deduplicate();
     assert_eq!(l.len(), arr.len());
-    for (i, n) in l.iter().enumerate() {
-        assert_eq!(arr[i], *n);
+    for i in 0..l.len() {
+        assert_eq!(arr[i], l[i]);
     }
+}
+
+#[test]
+fn test_map() {
+    let mut l = list![1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0];
+    let arr = [1, 1, 1, 1, 1, 1, 54, 531, 213, 0, 0];
+    let mut it = arr.iter();
+    let len = l.len();
+
+    l.map(|x: &mut i32| {*x = 1}, 0, 6);
+    l.map(|x: &mut i32| {assert_eq!(it.next().unwrap(), x)}, 0, len);
 }
