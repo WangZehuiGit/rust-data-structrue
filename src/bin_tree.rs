@@ -1,6 +1,5 @@
 use std::ptr::{self, NonNull};
 use std::cmp::max;
-use std::ops::Drop;
 use std::fmt::{self,Debug};
 use super::{malloc_val, free};
 
@@ -26,13 +25,13 @@ pub struct BinNode<T> {
 }
 
 impl<T> BinNode<T> {
-    fn new(value: &T, parent: NodePtr<T>, lc: NodePtr<T>, rc: NodePtr<T>, height: usize) -> Self {
+    fn new(value: &T, parent: NodePtr<T>) -> Self {
         BinNode {
             data: unsafe {ptr::read(value)},
             parent: parent,
-            lc: lc,
-            rc: rc,
-            height: height
+            lc: None,
+            rc: None,
+            height: 0
         }
     }
 }
@@ -158,7 +157,7 @@ pub trait Node<T> {
 impl<T> Node<T> for BinNode<T> {
     fn malloc(value: &T, parent: *mut Self) -> *mut Self {
         malloc_val (
-            &Self::new(value, NonNull::new(parent), None, None, 0)
+            &Self::new(value, NonNull::new(parent))
         )
     }
 
@@ -253,11 +252,9 @@ pub trait UpdateHeight<T, N: Node<T>> {
             }
         }
     }
-
-    
 }
 
-pub trait Tree<T, N: Node<T>>: UpdateHeight<T, N> {
+pub trait BinTree<T, N: Node<T>>: UpdateHeight<T, N> {
     fn size(&self) -> usize;
     fn set_size(&mut self, value: &usize);
     fn root(&self) -> Ptr<N>;
@@ -300,41 +297,12 @@ pub trait Tree<T, N: Node<T>>: UpdateHeight<T, N> {
         let size = self.size();
         self.set_size(&(size - N::remove_at(subtree.as_ptr())));
     }
-}
 
-pub struct BinTree<T> {
-    root: NodePtr<T>,
-    size: usize
-}
+    fn drop(&mut self) {
+        let root = self.root();
 
-impl<T> BinTree<T> {
-    pub fn new() -> Self {
-        BinTree {
-            root: None,
-            size: 0
+        if let Some(root) = root {
+            self.remove(root);
         }
     }
-
-    pub fn insert_as_root(&mut self, value: &T) -> NonNull<BinNode<T>> {
-        self.root = NonNull::new (
-            BinNode::malloc(value, 0 as *mut BinNode<T>)
-        );
-
-        self.size += 1;
-        self.root.unwrap()
-    }
 }
-
-//impl<T> Tree<T, BinNode<T>> for BinTree<T> {
-//    fn size(&self) -> usize {
-//        self.size
-//    }
-//
-//    fn set_size(&mut self, value: &usize) {
-//        self.size = *value;
-//    }
-//
-//    fn root(&self) -> NodePtr<T> {
-//        self.root
-//    }
-//}
