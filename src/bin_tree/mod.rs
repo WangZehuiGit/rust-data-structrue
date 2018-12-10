@@ -1,13 +1,19 @@
-mod node;
+mod private;
+pub mod height;
+pub mod color;
 
+use super::malloc_val;
 use std::ptr::{self, NonNull};
 use std::fmt::{self,Debug};
+use std::ops::FnMut;
 use std::marker::PhantomData;
+use std::rc::Rc;
+use std::cell::Cell;
 
-use self::node::Node;
 
 type Ptr<T> = Option<NonNull<T>>;
 type NodePtr<T> = Ptr<BinNode<T>>;
+pub type RawBinTree<T> = BinTree<T, BinNode<T>>;
 
 pub struct InsertErr(&'static str);
 
@@ -23,14 +29,11 @@ pub struct BinNode<T> {
     pub data: T,
     parent: Option<NonNull<BinNode<T>>>,
     lc: Option<NonNull<BinNode<T>>>,
-    rc: Option<NonNull<BinNode<T>>>,
+    rc: Option<NonNull<BinNode<T>>>
 }
 
-impl<T> BinNode<T> {
-    
-}
-
-pub trait PubNode<T>: Sized {
+pub trait Node<T>: Sized {
+    fn get(&mut self) -> &mut T;
     fn parent(&self) -> Ptr<Self>;
     fn lc(&self) -> Ptr<Self>;
     fn rc(&self) -> Ptr<Self>;
@@ -66,10 +69,35 @@ pub trait PubNode<T>: Sized {
     fn is_leaf(&self) -> bool {
         !self.has_lc() && !self.has_rc()
     }
+
+    fn map<F: Clone>(node: Ptr<Self>, mut func: F)
+    where
+        F: FnMut(&mut T)
+    {
+        unsafe {
+            if let Some(mut node) = node {
+                func(node.as_mut().get());
+                Self::map(node.as_ref().lc(), func.clone());
+                Self::map(node.as_ref().rc(), func);
+            }
+        }
+    }
+
+    fn size_of(subtree: NonNull<Self>) -> usize {
+        let size_mut = Rc::new(Cell::new(1));
+
+        Self::map(Some(subtree), |_: &mut T| {size_mut.set(size_mut.get() + 1)});
+
+        size_mut.get()
+    }
 }
 
 
-impl<T> PubNode<T> for BinNode<T> {
+impl<T> Node<T> for BinNode<T> {
+    fn get(&mut self) -> &mut T {
+        &mut self.data
+    }
+
     fn parent(&self) -> NodePtr<T> {
         self.parent
     }
@@ -83,7 +111,7 @@ impl<T> PubNode<T> for BinNode<T> {
     }
 }
 
-impl<T> Node<T> for BinNode<T> {
+impl<T> private::Node<T> for BinNode<T> {
     fn new(value: &T, parent: NodePtr<T>) -> Self {
         BinNode {
             data: unsafe {ptr::read(value)},
@@ -132,19 +160,32 @@ impl<T> Node<T> for BinNode<T> {
     }
 }
 
-pub struct BinTree<T, N: Node<T>> {
+pub struct BinTree<T, N: private::Node<T>> {
     root: Ptr<N>,
     size: usize,
     marker: PhantomData<T>
 }
 
-impl<T, N: Node<T>> BinTree<T, N> {
+impl<T, N: private::Node<T>> BinTree<T, N> {
+    pub fn new() -> Self {
+        BinTree {
+            root: None,
+            size: 0,
+            marker: PhantomData
+        }
+    }
+
     pub fn size(&self) -> usize {
         self.size
     }
 
     pub fn empty(&self) -> bool {
-        self.size() == 0
+        self.size == 0
+    }
+
+    pub fn insert_as_root(&mut self, value: &T) {
+        self.size = 1;
+        self.root = NonNull::new(malloc_val(&N::new(value, None)));
     }
 
     pub fn insert_as_lc(&mut self, mut ptr: NonNull<N>, value: &T) -> Result<NonNull<N>, InsertErr> {
@@ -167,6 +208,40 @@ impl<T, N: Node<T>> BinTree<T, N> {
         }
     }
 
+    pub fn attach_as_lc (
+        &mut self,
+        mut node: NonNull<N>,
+        subtree: Self
+    ) -> Result<NonNull<N>, InsertErr> {
+        unsafe {
+            node.as_mut().set_lc(&subtree.root)?;
+
+            if let Some(mut root) = subtree.root {
+                self.size += N::size_of(root);
+                root.as_mut().set_parent(&Some(node));
+            }
+
+            Ok(node.as_ref().lc().unwrap())
+        }
+    }
+
+    pub fn attach_as_rc (
+        &mut self,
+        mut node: NonNull<N>,
+        subtree: Self
+    ) -> Result<NonNull<N>, InsertErr> {
+        unsafe {
+            node.as_mut().set_rc(&subtree.root)?;
+
+            if let Some(mut root) = subtree.root {
+                self.size += N::size_of(root);
+                root.as_mut().set_parent(&Some(node));
+            }
+
+            Ok(node.as_ref().rc().unwrap())
+        }
+    }
+
     pub fn remove(&mut self, mut subtree: NonNull<N>) {
         unsafe {
             subtree.as_mut().set_parent(&None);
@@ -175,14 +250,31 @@ impl<T, N: Node<T>> BinTree<T, N> {
         let size = self.size();
         self.size = size - N::remove_at(subtree.as_ptr());
     }
+
+    pub fn secede(&mut self, mut node: NonNull<N>) -> Self {
+        let size = N::size_of(node);
+        self.size -= size;
+        
+        unsafe {
+            node.as_mut().set_parent(&None);
+        }
+
+        Self {
+            root: Some(node),
+            size: size,
+            marker: PhantomData
+        }
+    }
 }
 
-impl<T, N: Node<T>> Drop for BinTree<T, N> {
+impl<T, N: private::Node<T>> Drop for BinTree<T, N> {
     fn drop(&mut self) {
-        let root = self.root;
-
-        if let Some(root) = root {
-            N::remove_at(root.as_ptr());
+        if let Some(root) = self.root {
+            unsafe {
+                if root.as_ref().parent() == None {
+                    N::remove_at(root.as_ptr());
+                }
+            }
         }
     }
 }

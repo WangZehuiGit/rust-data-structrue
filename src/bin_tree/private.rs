@@ -1,8 +1,8 @@
-use super::{PubNode, Ptr, InsertErr};
+use super::{Ptr, InsertErr};
 use super::super::{malloc_val, free};
 use std::ptr::NonNull;
 
-pub trait Node<T>: PubNode<T> {
+pub trait Node<T>: super::Node<T> {
     fn new(value: &T, parent: Ptr<Self>) -> Self;
     fn set_parent(&mut self, value: &Ptr<Self>);
     fn set_lc(&mut self, value: &Ptr<Self>) -> Result<(), InsertErr>;
