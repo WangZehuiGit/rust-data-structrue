@@ -1,10 +1,11 @@
 extern crate rust_data_structrue;
 
 use rust_data_structrue::queue::*;
+use rust_data_structrue::list::*;
 
 #[test]
 fn test_base() {
-    let q = QueueList::<i32>::new();
+    let q = List::<i32>::new();
 
     assert_eq!(0, q.size());
     assert!(q.empty());
@@ -12,7 +13,7 @@ fn test_base() {
 
 #[test]
 fn test_enqueue_dequeue() {
-    let mut q = QueueList::<i32>::new();
+    let mut q = List::<i32>::new();
 
     q.enqueue(&34);
     assert_eq!(34, *q.front());

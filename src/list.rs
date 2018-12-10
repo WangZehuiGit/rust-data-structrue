@@ -1,4 +1,5 @@
 use super::{malloc_val, free};
+use super::queue::Queue;
 use std::ptr::{self, NonNull};
 use std::ops::{Drop, Index, IndexMut, FnMut};
 use std::cmp::PartialEq;
@@ -256,6 +257,41 @@ impl<T> IndexMut<usize> for List<T> {
         let node = self.get(i).unwrap();
 
         unsafe {&mut (*node.as_ptr()).data}
+    }
+}
+
+impl<T> Queue<T> for List<T> {
+    fn size(&self) -> usize {
+        self.len()
+    }
+
+    fn empty(&self) -> bool {
+        self.empty()
+    }
+
+    fn enqueue(&mut self, value: &T) {
+        let size = self.size();
+        self.insert(size, value);
+    }
+
+    fn dequeue(&mut self) -> T {
+        let size = self.size();
+        if size == 0 {
+            panic!("this queue is empty");
+        }
+        unsafe {
+            let out = ptr::read(&(self[0]));
+            self.remove(size - 1, size);
+
+            out
+        }
+    }
+
+    fn front(&mut self) -> &mut T {
+        if self.size() == 0 {
+            panic!("this queue is empty");
+        }
+        &mut self[0]
     }
 }
 

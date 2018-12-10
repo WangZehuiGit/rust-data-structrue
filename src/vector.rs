@@ -1,4 +1,5 @@
 use super::{malloc, free};
+use super::stack::Stack;
 use std::ptr;
 use std::ops::{Index, IndexMut, Deref, DerefMut};
 use std::cmp::PartialEq;
@@ -198,4 +199,45 @@ where
 
 		write!(f, "{}", s)
 	}
+}
+
+impl<T> Stack<T> for Vector<T> {
+    fn size(&self) -> usize {
+        self.len()
+    }
+
+    fn empty(&self) -> bool {
+        self.empty()
+    }
+
+    fn push(&mut self, value: &T) {
+        let size = self.size();
+        self.insert(size, value);
+    }
+
+    fn pop(&mut self) -> T {
+        let size = self.size();
+
+        if size == 0 {
+            panic!("this stack is empty");
+        }
+
+        unsafe {
+            let out = ptr::read(&self[size - 1]);
+
+            self.remove(size - 1, size);
+
+            out
+        }
+    }
+
+    fn top(&mut self) -> &mut T {
+        let size = self.size();
+
+        if size == 0 {
+            panic!("this stack is empty");
+        }
+
+        self.index_mut(size - 1)
+    }
 }

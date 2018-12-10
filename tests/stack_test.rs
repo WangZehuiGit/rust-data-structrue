@@ -1,10 +1,11 @@
 extern crate rust_data_structrue;
 
 use rust_data_structrue::stack::*;
+use rust_data_structrue::vector::*;
 
 #[test]
 fn test_base() {
-    let s = StackVector::<i32>::new();
+    let s = Vector::<i32>::new();
 
     assert_eq!(0, s.size());
     assert!(s.empty());
@@ -12,7 +13,7 @@ fn test_base() {
 
 #[test]
 fn test_pop_push() {
-    let mut s = StackVector::new();
+    let mut s = Vector::new();
 
     s.push(&43);
     assert_eq!(*s.top(), 43);
