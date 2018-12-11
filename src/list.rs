@@ -1,7 +1,7 @@
 use super::{malloc_val, free};
 use super::queue::Queue;
 use std::ptr::{self, NonNull};
-use std::ops::{Drop, Index, IndexMut, FnMut};
+use std::ops::{Drop, Index, IndexMut, Fn};
 use std::cmp::PartialEq;
 use std::default::Default;
 
@@ -107,12 +107,13 @@ impl<T> List<T> {
         ptr
     }
 
-    pub fn map<F>(&mut self, mut func: F, lo: usize, hi: usize)
+    pub fn map<F, R>(&mut self, func: F, lo: usize, hi: usize) -> Box<Vec<R>>
     where
-        F: FnMut(&mut T)
+        F: Fn(&T) -> R
     {
         let mut it = self.get(lo);
         let mut cnt = lo;
+        let mut r = Box::new(Vec::<R>::new());
 
         unsafe {
             while let Some(mut node) = it {
@@ -120,11 +121,13 @@ impl<T> List<T> {
                     break;
                 }
 
-                func(&mut node.as_mut().data);
+                r.push(func(&node.as_mut().data));
 
                 it = node.as_ref().succ;
                 cnt += 1;
            }
+
+           r
         }
     }
 

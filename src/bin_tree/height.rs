@@ -1,22 +1,14 @@
-mod private {
-    use super::GetHeight;
-
-    pub trait SetHeight<T>: GetHeight<T> {
-        fn set_height(&mut self, value: &usize);
-    }
-}
-
 use super::Node;
 use super::Ptr;
 use std::ptr::NonNull;
 use std::cmp::max;
-use self::private::SetHeight;
+use super::private::NodeHeight;
 
 pub trait GetHeight<T>: Node<T> {
     fn height(&self) -> usize;
 }
 
-pub trait UpdateHeight<T>: SetHeight<T> {
+pub trait UpdateHeight<T>: NodeHeight<T> {
     fn stature(ptr: Ptr<Self>) -> usize {
         if let Some(node) = ptr {
             return unsafe {node.as_ref().height()};

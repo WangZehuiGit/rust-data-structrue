@@ -1,12 +1,6 @@
-mod private {
-    use super::*;
-    pub trait SetColor<T>: GetColor<T> {
-        fn set_color(&mut self, color: Color);
-    }
-}
-
 use super::Node;
 
+#[derive(Clone, Copy)]
 pub enum Color {
     Red,
     Black

@@ -5,11 +5,8 @@ pub mod color;
 use super::malloc_val;
 use std::ptr::{self, NonNull};
 use std::fmt::{self,Debug};
-use std::ops::FnMut;
+use std::ops::Fn;
 use std::marker::PhantomData;
-use std::rc::Rc;
-use std::cell::Cell;
-
 
 type Ptr<T> = Option<NonNull<T>>;
 type NodePtr<T> = Ptr<BinNode<T>>;
@@ -70,25 +67,25 @@ pub trait Node<T>: Sized {
         !self.has_lc() && !self.has_rc()
     }
 
-    fn map<F: Clone>(node: Ptr<Self>, mut func: F)
+    fn map<F: Copy, R>(node: Ptr<Self>, func: F) -> Box<Vec<R>>
     where
-        F: FnMut(&mut T)
+        F: Fn(&T) -> R
     {
+        let mut r = Box::new(Vec::<R>::new());
+
         unsafe {
             if let Some(mut node) = node {
-                func(node.as_mut().get());
-                Self::map(node.as_ref().lc(), func.clone());
-                Self::map(node.as_ref().rc(), func);
+                r.push(func(node.as_mut().get()));
+                r.append(&mut Self::map(node.as_ref().lc(), func));
+                r.append(&mut Self::map(node.as_ref().rc(), func));
             }
         }
+
+        r
     }
 
     fn size_of(subtree: NonNull<Self>) -> usize {
-        let size_mut = Rc::new(Cell::new(1));
-
-        Self::map(Some(subtree), |_: &mut T| {size_mut.set(size_mut.get() + 1)});
-
-        size_mut.get()
+        Self::map(Some(subtree), &|_: &T| ()).len()
     }
 }
 

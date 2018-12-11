@@ -69,8 +69,7 @@ fn test_map() {
     let mut l = list![1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0];
     let arr = [1, 1, 1, 1, 1, 1, 54, 531, 213, 0, 0];
     let mut it = arr.iter();
-    let len = l.len();
 
-    l.map(|x: &mut i32| {*x = 1}, 0, 6);
-    l.map(|x: &mut i32| {assert_eq!(it.next().unwrap(), x)}, 0, len);
+    let _ = l.map(|_: &i32| 1, 0, 6)
+             .iter().map(|x: &i32| {assert_eq!(it.next().unwrap(), x)});
 }
