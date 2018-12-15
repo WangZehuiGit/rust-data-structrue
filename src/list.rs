@@ -1,11 +1,48 @@
 use super::{malloc_val, free};
 use super::queue::Queue;
 use std::ptr::{self, NonNull};
-use std::ops::{Drop, Index, IndexMut, Fn};
+use std::ops::{Drop, Index, IndexMut, FnMut};
 use std::cmp::PartialEq;
 use std::default::Default;
+use std::marker::PhantomData;
+use std::iter::DoubleEndedIterator;
 
 type Link<T> = Option<NonNull<Node<T>>>;
+
+pub struct Iter<'a, T: 'a> {
+    ptr: *mut Node<T>,
+    end: *mut Node<T>,
+    marker: PhantomData<&'a mut T>
+}
+
+impl<'a, T: 'a> Iterator for Iter<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if self.ptr == self.end {
+                return None;
+            }
+            let ptr = self.ptr;
+            self.ptr = (*ptr).succ().unwrap().as_ptr();
+
+            return Some(&mut (*ptr).data);
+        }
+    }
+}
+
+impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        unsafe {
+            if self.end == self.ptr {
+                return None;
+            }
+            self.end = (*self.end).pred().unwrap().as_ptr();
+
+            return Some(&mut (*self.end).data);
+        }
+    }
+}
 
 pub struct Node<T> {
     pub data: T,
@@ -107,13 +144,12 @@ impl<T> List<T> {
         ptr
     }
 
-    pub fn map<F, R>(&mut self, func: F, lo: usize, hi: usize) -> Box<Vec<R>>
+    pub fn for_each<F>(&mut self, mut func: F, lo: usize, hi: usize)
     where
-        F: Fn(&T) -> R
+        F: FnMut(&mut T)
     {
         let mut it = self.get(lo);
         let mut cnt = lo;
-        let mut r = Box::new(Vec::<R>::new());
 
         unsafe {
             while let Some(mut node) = it {
@@ -121,13 +157,11 @@ impl<T> List<T> {
                     break;
                 }
 
-                r.push(func(&node.as_mut().data));
+                func(&mut node.as_mut().data);
 
                 it = node.as_ref().succ;
                 cnt += 1;
            }
-
-           r
         }
     }
 
@@ -164,6 +198,16 @@ impl<T> List<T> {
         }
 
         self.len -= hi - lo;
+    }
+}
+
+impl<'a, T:'a> List<T> {
+    pub fn iter(&mut self) -> Iter<'a, T> {
+        Iter {
+            ptr: unsafe {(*self.head).succ().unwrap().as_ptr()},
+            end: self.trail,
+            marker: PhantomData
+        }
     }
 }
 

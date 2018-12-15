@@ -65,11 +65,29 @@ fn test_deduplicate() {
 }
 
 #[test]
-fn test_map() {
+fn test_for_each() {
     let mut l = list![1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0];
     let arr = [1, 1, 1, 1, 1, 1, 54, 531, 213, 0, 0];
     let mut it = arr.iter();
 
-    let _ = l.map(|_: &i32| 1, 0, 6)
-             .iter().map(|x: &i32| {assert_eq!(it.next().unwrap(), x)});
+    l.for_each(|x| {*x = 1}, 0, 6);
+    l.for_each(|x| {assert_eq!(it.next().unwrap(), x)}, 0, 11);
+}
+
+#[test]
+fn test_iter() {
+    let mut l = list![1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0];
+    let arr = [1, 1, 1, 1, 1, 1, 54, 531, 213, 0, 0];
+
+    for n in l.iter().take(6) {
+        *n = 1;
+    }
+
+    for (n1, n2) in l.iter().zip(arr.iter()) {
+        assert_eq!(n1, n2);
+    }
+
+    for (n1, n2) in l.iter().rev().zip(arr.iter().rev()) {
+        assert_eq!(n1, n2);
+    }
 }

@@ -4,21 +4,41 @@ pub mod color;
 
 use super::malloc_val;
 use std::ptr::{self, NonNull};
-use std::fmt::{self,Debug};
 use std::ops::Fn;
+use std::cell::Cell;
 use std::marker::PhantomData;
 
 type Ptr<T> = Option<NonNull<T>>;
 type NodePtr<T> = Ptr<BinNode<T>>;
 pub type RawBinTree<T> = BinTree<T, BinNode<T>>;
 
+#[derive(Debug)]
 pub struct InsertErr(&'static str);
 
-impl Debug for InsertErr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let InsertErr(s) = self;
+#[derive(Clone, Copy)]
+pub struct Iter<'a, T: 'a, N: 'a + private::Node<T>> {
+    ptr: Ptr<N>,
+    marker: PhantomData<&'a mut T>
+}
 
-        fmt::Debug::fmt(s, f)
+impl<'a, T: 'a, N: 'a + private::Node<T>> Iterator for Iter<'a, T, N> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<&'a mut T> {
+        unsafe {
+            let next_ptr: Ptr<N>;
+            let value: &mut T;
+
+            if let Some(ptr) = self.ptr {
+                next_ptr = ptr.as_ref().succ();
+                value = (*ptr.as_ptr()).get();
+            } else {
+                return None;
+            }
+
+            self.ptr = next_ptr;
+            Some(value)
+        }
     }
 }
 
@@ -67,25 +87,56 @@ pub trait Node<T>: Sized {
         !self.has_lc() && !self.has_rc()
     }
 
-    fn map<F: Copy, R>(node: Ptr<Self>, func: F) -> Box<Vec<R>>
-    where
-        F: Fn(&T) -> R
-    {
-        let mut r = Box::new(Vec::<R>::new());
+    fn succ(&self) -> Ptr<Self> {
+        let mut succ: Ptr<Self>;
 
         unsafe {
-            if let Some(mut node) = node {
-                r.push(func(node.as_mut().get()));
-                r.append(&mut Self::map(node.as_ref().lc(), func));
-                r.append(&mut Self::map(node.as_ref().rc(), func));
+            if let Some(mut node) = self.rc() {
+                succ = self.rc();
+                while let Some(next) = node.as_ref().lc() {
+                    succ = Some(next);
+                    node = next;
+                }
+            } else {
+                succ = None;
+
+                if let Some(mut node) = self.parent() {
+                    if self.is_lc() {
+                        succ = Some(node);
+                    } else {
+                        while let Some(next) = node.as_ref().parent() {
+                            node = next;
+
+                            if node.as_ref().is_lc() {
+                                succ = Some(next);
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        r
+        return succ;
+    }
+
+    fn for_each<F: Copy>(node: Ptr<Self>, func: F)
+    where
+        F: Fn(&mut T)
+    {
+        unsafe {
+            if let Some(node) = node {
+                Self::for_each(node.as_ref().lc(), func);
+                Self::for_each(node.as_ref().rc(), func);
+            }
+        }
     }
 
     fn size_of(subtree: NonNull<Self>) -> usize {
-        Self::map(Some(subtree), &|_: &T| ()).len()
+        let size = Cell::new(1usize);
+        Self::for_each(Some(subtree), |_| {size.set(size.get() + 1)});
+
+        size.get()
     }
 }
 
@@ -259,6 +310,15 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         Self {
             root: Some(node),
             size: size,
+            marker: PhantomData
+        }
+    }
+}
+
+impl<'a, T: 'a, N: 'a + private::Node<T>> BinTree<T, N> {
+    pub fn iter(&'a mut self) -> Iter<'a, T, N> {
+        Iter {
+            ptr: self.root,
             marker: PhantomData
         }
     }
