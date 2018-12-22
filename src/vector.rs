@@ -3,10 +3,48 @@ use super::stack::Stack;
 use std::ptr;
 use std::ops::{Index, IndexMut, Deref, DerefMut};
 use std::cmp::PartialEq;
+use std::marker::PhantomData;
+use std::iter::DoubleEndedIterator;
 use std::fmt;
 
 type	Rank = usize;
 const	DEFAULT_CAPACITY: usize = 8;
+
+#[derive(Clone, Copy)]
+pub struct Iter<'a, T: 'a> {
+	ptr: *mut T,
+	end: *mut T,
+	marker: PhantomData<&'a mut T>
+}
+
+impl<'a, T: 'a> Iterator for Iter<'a, T> {
+	type Item = &'a mut T;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if self.ptr == self.end {
+			return None;
+		}
+
+		unsafe {
+			let ptr = self.ptr;
+			self.ptr = self.ptr.add(1);
+			Some(&mut (*ptr))
+		}
+	}
+}
+
+impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
+	fn next_back(&mut self) -> Option<Self::Item> {
+		if self.end == self.ptr {
+			return None;
+		}
+
+		unsafe {
+			self.end = self.end.sub(1);
+			Some(&mut (*self.end))
+		}
+	}
+}
 
 pub struct Vector<T> {
 	len: Rank,
@@ -109,6 +147,16 @@ impl<T: PartialEq> Vector<T> {
 			}
 		}
 		Option::None
+	}
+}
+
+impl<'a, T: 'a> Vector<T> {
+	pub fn iter(&mut self) -> Iter<'a, T> {
+		Iter {
+			ptr: self.ptr,
+			end: unsafe {self.ptr.add(self.len)},
+			marker: PhantomData
+		}
 	}
 }
 

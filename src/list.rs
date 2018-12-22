@@ -9,6 +9,7 @@ use std::iter::DoubleEndedIterator;
 
 type Link<T> = Option<NonNull<Node<T>>>;
 
+#[derive(Clone, Copy)]
 pub struct Iter<'a, T: 'a> {
     ptr: *mut Node<T>,
     end: *mut Node<T>,

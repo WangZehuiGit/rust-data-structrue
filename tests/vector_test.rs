@@ -18,6 +18,24 @@ fn test_index() {
 }
 
 #[test]
+fn test_iter() {
+    let mut l = Vector::from_slice(&[1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0]);
+    let arr = [1, 1, 1, 1, 1, 1, 54, 531, 213, 0, 0];
+
+    for n in l.iter().take(6) {
+        *n = 1;
+    }
+
+    for (n1, n2) in l.iter().zip(arr.iter()) {
+        assert_eq!(n1, n2);
+    }
+
+    for (n1, n2) in l.iter().rev().zip(arr.iter().rev()) {
+        assert_eq!(n1, n2);
+    }
+}
+
+#[test]
 fn test_find() {
     let v = Vector::from_slice(&[1,34,354,23]);
     let i = v.find(&354);
