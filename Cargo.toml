@@ -1,6 +1,7 @@
 [package]
-name = "rust-data-structrue"
+name = "rust-data-structure"
 version = "0.1.0"
 authors = ["wzh"]
 
 [dependencies]
+rand = "0.6.1"

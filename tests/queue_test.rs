@@ -1,7 +1,7 @@
-extern crate rust_data_structrue;
+extern crate rust_data_structure;
 
-use rust_data_structrue::queue::*;
-use rust_data_structrue::list::*;
+use rust_data_structure::queue::*;
+use rust_data_structure::list::*;
 
 #[test]
 fn test_base() {

@@ -6,6 +6,7 @@ use std::cmp::PartialEq;
 use std::marker::PhantomData;
 use std::iter::DoubleEndedIterator;
 use std::fmt;
+use super::sort::Sort;
 
 type	Rank = usize;
 const	DEFAULT_CAPACITY: usize = 8;
@@ -117,9 +118,9 @@ impl<T> Vector<T> {
 			return;
 		}
 		unsafe {
-			let new_ptr = malloc(self.capacity).unwrap();
+			let new_ptr = malloc(self.capacity * 2).unwrap();
 			ptr::copy(self.ptr, new_ptr, self.len);
-			free(self.ptr, self.capacity).unwrap();
+			free(self.ptr, self.capacity).expect("vector.rs 123 error when free\n");
 			self.ptr = new_ptr;
 		}
 		self.capacity *= 2;
@@ -130,7 +131,7 @@ impl<T> Vector<T> {
 			return;
 		}
 		unsafe {
-			let new_ptr = malloc(self.capacity).unwrap();
+			let new_ptr = malloc(self.capacity / 2).unwrap();
 			ptr::copy(self.ptr, new_ptr, self.len);
 			free(self.ptr, self.capacity).unwrap();
 			self.ptr = new_ptr;
@@ -288,4 +289,14 @@ impl<T> Stack<T> for Vector<T> {
 
         self.index_mut(size - 1)
     }
+}
+
+impl<'a, T: 'a + Copy> Sort<Iter<'a, T>> for Vector<T> {
+	fn len(&self) -> usize {
+		self.len()
+	}
+
+	fn iter(&mut self) -> Iter<'a, T> {
+		self.iter()
+	}
 }

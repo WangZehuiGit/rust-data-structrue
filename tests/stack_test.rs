@@ -1,7 +1,7 @@
-extern crate rust_data_structrue;
+extern crate rust_data_structure;
 
-use rust_data_structrue::stack::*;
-use rust_data_structrue::vector::*;
+use rust_data_structure::stack::*;
+use rust_data_structure::vector::*;
 
 #[test]
 fn test_base() {
