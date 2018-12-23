@@ -1,4 +1,36 @@
 use std::{cmp, ops};
+use std::iter::FromIterator;
+
+fn merge<I, F>(mut it: I, mid: usize, compare: F)
+where
+    I: Iterator + Copy,
+    I::Item: ops::DerefMut,
+    <I::Item as ops::Deref>::Target: Copy,
+    F: ops::Fn(
+        &<I::Item as ops::Deref>::Target,
+        &<I::Item as ops::Deref>::Target
+    ) -> cmp::Ordering
+{
+    let mut i = 0usize;
+    let mut j = mid + 1;
+    let tmp_data = Vec::from_iter(it.map(|x| {*x}));
+
+    for n in it {
+        if i > mid {
+            *n = tmp_data[j];
+            j += 1;
+        } else if j >= tmp_data.len() {
+            *n = tmp_data[i];
+            i += 1;
+        } else if compare(&tmp_data[i], &tmp_data[j]) == cmp::Ordering::Greater {
+            *n = tmp_data[j];
+            j += 1;
+        } else {
+            *n = tmp_data[i];
+            i += 1;
+        }
+    }
+}
 
 pub trait Sort<I>: Clone
 where
@@ -17,7 +49,10 @@ where
 
     fn bubble_sort<F>(&mut self, compare: F)
     where
-        F: ops::Fn(I::Item, I::Item) -> cmp::Ordering
+        F: ops::Fn(
+            &<I::Item as ops::Deref>::Target,
+            &<I::Item as ops::Deref>::Target
+        ) -> cmp::Ordering
     {
         let it = self.iter();
 
@@ -26,7 +61,7 @@ where
             let mut it1 = it.take(len).skip(1);
             
             for (n0, n1) in it0.zip(it1) {
-                if compare(n0, n1) == cmp::Ordering::Greater {
+                if compare(& *n0, & *n1) == cmp::Ordering::Greater {
                     Self::swap(n0, n1);
                 }
             }
@@ -35,14 +70,17 @@ where
 
     fn selection_sort<T, F>(&mut self, compare: F)
     where
-        F: ops::Fn(I::Item, I::Item) -> cmp::Ordering
+        F: ops::Fn(
+            &<I::Item as ops::Deref>::Target,
+            &<I::Item as ops::Deref>::Target
+        ) -> cmp::Ordering
     {
         let it = self.iter();
 
         for (i, n) in it.take(self.len() - 1).enumerate() {
             let mut it0 = it.skip(i + 1);
             for n0 in it0 {
-                if compare(n, n0) == cmp::Ordering::Greater {
+                if compare(& *n, & *n0) == cmp::Ordering::Greater {
                     Self::swap(n, n0);
                 }
             }
@@ -51,7 +89,10 @@ where
 
     fn insertion_sort<F>(&mut self, compare: F)
     where
-        F: ops::Fn(I::Item, I::Item) -> cmp::Ordering
+        F: ops::Fn(
+            &<I::Item as ops::Deref>::Target,
+            &<I::Item as ops::Deref>::Target
+        ) -> cmp::Ordering
     {
         let it = self.iter();
 
@@ -59,7 +100,7 @@ where
             let mut it0 = it.take(i);
 
             for n0 in it0 {
-                if compare(n0, n) == cmp::Ordering::Greater {
+                if compare(& *n0, & *n) == cmp::Ordering::Greater {
                     Self::swap(n0, n);
 
                     for n1 in it0 {
@@ -72,7 +113,10 @@ where
 
     fn shell_sort<T, F>(&mut self, compare: F)
     where
-        F: ops::Fn(I::Item, I::Item) -> cmp::Ordering
+        F: ops::Fn(
+            &<I::Item as ops::Deref>::Target,
+            &<I::Item as ops::Deref>::Target
+        ) -> cmp::Ordering
     {
         let length = self.len();
         let mut h = 1usize;
@@ -87,7 +131,7 @@ where
                 let mut it0 = it.take(i);
 
                 for n0 in it0 {
-                    if compare(n0, n) == cmp::Ordering::Greater {
+                    if compare(& *n0, & *n) == cmp::Ordering::Greater {
                         Self::swap(n0, n);
 
                         for n1 in it0 {
@@ -98,29 +142,6 @@ where
             }
 
             h /= 3;
-        }
-    }
-
-    fn merge<T, F>(data: &mut [T], mid: usize, mut compare: F)
-        where T: cmp::Ord + Clone, F: ops::FnMut(&T, &T) -> cmp::Ordering {
-        let mut i = 0usize;
-        let mut j = mid + 1;
-        let tmp_data = Vec::from(&data[..]);
-
-        for k in 0..data.len() {
-            if i > mid {
-                data[k] = tmp_data[j].clone();
-                j += 1;
-            } else if j >= data.len() {
-                data[k] = tmp_data[i].clone();
-                i += 1;
-            } else if compare(&tmp_data[i], &tmp_data[j]) == cmp::Ordering::Greater {
-                data[k] = tmp_data[j].clone();
-                j += 1;
-            } else {
-                data[k] = tmp_data[i].clone();
-                i += 1;
-            }
         }
     }
 
