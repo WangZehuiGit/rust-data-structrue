@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rust_data_structure;
 
-use rust_data_structure::list::*;
+use rust_data_structure::list::List;
 
 #[test]
 fn test_base() {
