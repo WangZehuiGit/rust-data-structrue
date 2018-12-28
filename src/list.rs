@@ -1,8 +1,9 @@
 use super::{malloc_val, free};
 use super::queue::Queue;
+use super::sort::Sort;
 use std::ptr::{self, NonNull};
 use std::ops::{Drop, Index, IndexMut, FnMut};
-use std::cmp::PartialEq;
+use std::cmp::{PartialEq, Ordering};
 use std::default::Default;
 use std::marker::PhantomData;
 use std::iter::DoubleEndedIterator;
@@ -74,6 +75,11 @@ impl<T> Node<T> {
                 );
             }
         }
+    }
+
+    fn link(a: &mut Node<T>, b: &mut Node<T>) {
+        a.succ = NonNull::new(b);
+        b.pred = NonNull::new(a);
     }
 
     pub fn pred(&self) -> Link<T> {
@@ -269,6 +275,37 @@ impl<T: PartialEq> List<T> {
     }
 }
 
+impl<T: Ord> List<T> {
+    pub fn sort<F>(&mut self, cmp: F)
+    where
+        F: Fn(&T, &T) -> Ordering
+    {
+        unsafe {
+            if let Some(mut it) = self.get(1) {
+                while it.as_ptr() != self.trail {
+                    let mut it0 = self.get(0).unwrap();
+                    let mut pred = it.as_ref().pred.unwrap();
+                    let mut succ = it.as_ref().succ.unwrap();
+
+                    while it0 != it {
+                        let next = it0.as_ref().succ.unwrap();
+                        if cmp(&it0.as_ref().data, &it.as_ref().data) == Ordering::Greater {
+                            Node::link(it0.as_ref().pred.unwrap().as_mut(), it.as_mut());
+                            Node::link(it.as_mut(), it0.as_mut());
+                            Node::link(pred.as_mut(), succ.as_mut());
+                            break;
+                        }
+
+                        it0 = next;
+                    }
+
+                    it = succ;
+                }
+            }
+        }
+    }
+}
+
 impl<T> Drop for List<T> {
     fn drop(&mut self) {
         let len = self.len;
@@ -309,21 +346,13 @@ impl<T> IndexMut<usize> for List<T> {
 }
 
 impl<T> Queue<T> for List<T> {
-    fn size(&self) -> usize {
-        self.len()
-    }
-
-    fn empty(&self) -> bool {
-        self.empty()
-    }
-
     fn enqueue(&mut self, value: &T) {
-        let size = self.size();
+        let size = self.len();
         self.insert(size, value);
     }
 
     fn dequeue(&mut self) -> T {
-        let size = self.size();
+        let size = self.len();
         if size == 0 {
             panic!("this queue is empty");
         }
@@ -336,10 +365,20 @@ impl<T> Queue<T> for List<T> {
     }
 
     fn front(&mut self) -> &mut T {
-        if self.size() == 0 {
+        if self.len() == 0 {
             panic!("this queue is empty");
         }
         &mut self[0]
+    }
+}
+
+impl<'a, T: 'a + Copy> Sort<Iter<'a, T>> for List<T> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn iter(&mut self) -> Iter<'a, T> {
+        self.iter()
     }
 }
 

@@ -91,3 +91,16 @@ fn test_iter() {
         assert_eq!(n1, n2);
     }
 }
+
+#[test]
+fn test_sort() {
+    let mut l = list![1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0];
+    let mut a = [1234, 3, 3, 3, 6, 0, 54, 531, 213, 0, 0];
+
+    l.sort(|a, b| a.cmp(b));
+    a.sort();
+
+    for (a, b) in l.iter().zip(a.iter()) {
+        assert_eq!(a, b);
+    }
+}

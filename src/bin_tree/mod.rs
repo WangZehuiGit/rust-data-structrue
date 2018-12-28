@@ -64,7 +64,9 @@ pub trait Node<T>: Sized {
 
         unsafe {
             if let Some(node) = self.parent() {
-                return self_ptr == node.as_ref().lc().unwrap().as_ptr();
+                if let Some(lc) = node.as_ref().lc() {
+                    return self_ptr == lc.as_ptr();
+                }
             }
 
             false
@@ -91,28 +93,22 @@ pub trait Node<T>: Sized {
         let mut succ: Ptr<Self>;
 
         unsafe {
-            if let Some(mut node) = self.rc() {
+            if let Some(_) = self.lc() {
+                succ = self.lc();
+            } else if let Some(_) = self.rc() {
                 succ = self.rc();
-                while let Some(next) = node.as_ref().lc() {
-                    succ = Some(next);
-                    node = next;
-                }
             } else {
                 succ = None;
+                let mut node = self;
 
-                if let Some(mut node) = self.parent() {
-                    if self.is_lc() {
-                        succ = Some(node);
-                    } else {
-                        while let Some(next) = node.as_ref().parent() {
-                            node = next;
-
-                            if node.as_ref().is_lc() {
-                                succ = Some(next);
-                                break;
-                            }
+                while let Some(mut parent) = node.parent() {
+                    if node.is_lc() {
+                        if let Some(rc) = parent.as_ref().rc() {
+                            succ = Some(rc);
+                            break;
                         }
                     }
+                    node = & *parent.as_ptr();
                 }
             }
         }
@@ -221,6 +217,10 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
             size: 0,
             marker: PhantomData
         }
+    }
+
+    pub fn root(&self) -> Ptr<N> {
+        self.root
     }
 
     pub fn size(&self) -> usize {
