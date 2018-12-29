@@ -1,6 +1,7 @@
 mod private;
 pub mod height;
 pub mod color;
+pub mod search;
 
 use super::malloc_val;
 use std::ptr::{self, NonNull};
@@ -30,7 +31,7 @@ impl<'a, T: 'a, N: 'a + private::Node<T>> Iterator for Iter<'a, T, N> {
             let value: &mut T;
 
             if let Some(ptr) = self.ptr {
-                next_ptr = ptr.as_ref().succ();
+                next_ptr = ptr.as_ref().next();
                 value = (*ptr.as_ptr()).get();
             } else {
                 return None;
@@ -54,6 +55,12 @@ pub trait Node<T>: Sized {
     fn parent(&self) -> Ptr<Self>;
     fn lc(&self) -> Ptr<Self>;
     fn rc(&self) -> Ptr<Self>;
+
+    fn swap(mut a: NonNull<Self>, mut b: NonNull<Self>) {
+        unsafe {
+            ptr::swap(a.as_mut().get(), b.as_mut().get());
+        }
+    }
 
     fn is_root(&self) -> bool {
         self.parent() == None
@@ -89,7 +96,44 @@ pub trait Node<T>: Sized {
         !self.has_lc() && !self.has_rc()
     }
 
+    fn has_double_branch(&self) -> bool {
+        self.has_lc() && self.has_rc()
+    }
+
     fn succ(&self) -> Ptr<Self> {
+        let mut succ: Ptr<Self>;
+
+        unsafe {
+            if let Some(mut node) = self.rc() {
+                succ = self.rc();
+                while let Some(next) = node.as_ref().lc() {
+                    succ = Some(next);
+                    node = next;
+                }
+            } else {
+                succ = None;
+
+                if let Some(mut node) = self.parent() {
+                    if self.is_lc() {
+                        succ = Some(node);
+                    } else {
+                        while let Some(next) = node.as_ref().parent() {
+                            node = next;
+
+                            if node.as_ref().is_lc() {
+                                succ = Some(next);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return succ;
+    }
+
+    fn next(&self) -> Ptr<Self> {
         let mut succ: Ptr<Self>;
 
         unsafe {

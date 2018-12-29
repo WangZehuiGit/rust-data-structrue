@@ -56,10 +56,10 @@ pub trait Node<T>: super::Node<T> {
     }
 }
 
-pub trait NodeColor<T>: GetColor<T> {
+pub trait ColorNode<T>: GetColor<T> {
     fn set_color(&mut self, color: Color);
 }
 
-pub trait NodeHeight<T>: GetHeight<T> {
+pub trait HeightNode<T>: GetHeight<T> {
     fn set_height(&mut self, value: &usize);
 }

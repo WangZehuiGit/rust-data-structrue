@@ -1,6 +1,7 @@
 use super::{malloc_val, free};
 use super::queue::Queue;
 use super::sort::Sort;
+use super::search::Ordered;
 use std::ptr::{self, NonNull};
 use std::ops::{Drop, Index, IndexMut, FnMut};
 use std::cmp::{PartialEq, Ordering};
@@ -379,6 +380,14 @@ impl<'a, T: 'a + Copy> Sort<Iter<'a, T>> for List<T> {
 
     fn iter(&mut self) -> Iter<'a, T> {
         self.iter()
+    }
+}
+
+impl<T: Ord> Ordered<T> for List<T> {
+    fn push(&mut self, value: &T) {
+        let len = self.len();
+        self.insert(len, value);
+        self.sort(|a, b| a.cmp(b));
     }
 }
 

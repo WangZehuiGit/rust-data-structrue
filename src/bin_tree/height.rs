@@ -2,13 +2,13 @@ use super::Node;
 use super::Ptr;
 use std::ptr::NonNull;
 use std::cmp::max;
-use super::private::NodeHeight;
+use super::private::HeightNode;
 
 pub trait GetHeight<T>: Node<T> {
     fn height(&self) -> usize;
 }
 
-pub trait UpdateHeight<T>: NodeHeight<T> {
+pub trait UpdateHeight<T>: HeightNode<T> {
     fn stature(ptr: Ptr<Self>) -> usize {
         if let Some(node) = ptr {
             return unsafe {node.as_ref().height()};

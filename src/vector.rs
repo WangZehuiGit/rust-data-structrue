@@ -1,6 +1,7 @@
 pub use super::sort::Sort;
 use super::{malloc, free};
 use super::stack::Stack;
+use super::search::Ordered;
 use std::ptr;
 use std::ops::{Index, IndexMut, Deref, DerefMut};
 use std::cmp::PartialEq;
@@ -296,5 +297,13 @@ impl<'a, T: 'a + Copy> Sort<Iter<'a, T>> for Vector<T> {
 
     fn iter(&mut self) -> Iter<'a, T> {
         self.iter()
+    }
+}
+
+impl<T: Ord + Copy> Ordered<T> for Vector<T> {
+    fn push(&mut self, value: &T) {
+        let len = self.len();
+        self.insert(len, value);
+        self.insertion_sort(|a, b| a.cmp(b));
     }
 }
