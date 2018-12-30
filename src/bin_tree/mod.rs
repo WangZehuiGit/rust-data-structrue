@@ -334,13 +334,18 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         }
     }
 
-    pub fn remove(&mut self, mut subtree: NonNull<N>) {
+    pub fn remove(&mut self, mut subtree: NonNull<N>) -> Ptr<N> {
+        let parent: Ptr<N>;
+
         unsafe {
+            parent = subtree.as_ref().parent();
             subtree.as_mut().set_parent(&None);
         }
 
         let size = self.size();
         self.size = size - N::remove_at(subtree.as_ptr());
+
+        parent
     }
 
     pub fn secede(&mut self, mut node: NonNull<N>) -> Self {
