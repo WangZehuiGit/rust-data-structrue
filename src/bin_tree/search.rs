@@ -5,6 +5,7 @@ use std::ptr::NonNull;
 
 pub type BST<T> = BinarySearchTree<T, BinNode<T>>;
 type HBN<T> = HeightBinNode<T, BinNode<T>>;
+type SubTree<T> = BinTree<T, HBN<T>>;
 
 pub struct BinarySearchTree<T: Ord, N: private::Node<T>> {
     bin_tree: BinTree<T, N>
@@ -140,10 +141,44 @@ pub struct AVLTree<T: Ord> {
 }
 
 impl<T: Ord> AVLTree<T> {
-    fn is_balanced(node: NonNull<HBN<T>>) -> bool {
-        unsafe {
-            HBN::stature(node.as_ref().lc()) == HBN::stature(node.as_ref().rc())
+    pub fn new() -> Self {
+        Self {
+            bst: BinarySearchTree::new()
         }
+    }
+
+    pub fn size(&self) -> usize {
+        self.bst.size()
+    }
+
+    pub fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
+    where
+        F: Fn(K, &T) -> Ordering,
+        Self: 'a
+    {
+        self.bst.search(key, cmp)
+    }
+
+    pub fn insert(&mut self, value: &T) -> Ptr<HBN<T>> {
+        unsafe {
+            let node = self.bst.insert(value);
+            return self.balance(node);
+        }
+    }
+
+    pub fn remove(&mut self, value: &T) -> Ptr<HBN<T>> {
+        unsafe {
+            let node = self.bst.remove(value);
+            return self.balance(node);
+        }
+    }
+
+    pub fn iter<'a>(&'a mut self) -> Iter<'a, T, HBN<T>>
+    where
+        T: 'a,
+        HBN<T>: 'a
+    {
+        self.bst.iter()
     }
 
     fn bal_fac(node: NonNull<HBN<T>>) -> usize {
@@ -175,5 +210,120 @@ impl<T: Ord> AVLTree<T> {
                 }
             }
         }
+    }
+
+    fn connect34(
+        &mut self,
+        a: SubTree<T>,
+        mut b: SubTree<T>,
+        c: SubTree<T>,
+        t0: SubTree<T>,
+        t1: SubTree<T>,
+        t2: SubTree<T>,
+        t3: SubTree<T>
+    ) -> SubTree<T> {
+        let root = b.root().unwrap();
+        let lc = b.attach_as_lc(root, a).unwrap();
+        let rc = b.attach_as_rc(root, c).unwrap();
+        
+        if let Some(lc) = lc {
+            b.attach_as_lc(lc, t0).unwrap();
+            b.attach_as_rc(lc, t1).unwrap();
+        }
+        if let Some(rc) = rc {
+            b.attach_as_lc(rc, t2).unwrap();
+            b.attach_as_rc(rc, t3).unwrap();
+        }
+
+        b
+    }
+
+    fn secede(tree: &mut SubTree<T>, node: Ptr<HBN<T>>) -> SubTree<T> {
+        if let Some(node) = node {
+            return tree.secede(node);
+        } else {
+            return BinTree::new();
+        }
+    }
+
+    fn balance_node(&mut self, node: NonNull<HBN<T>>) -> SubTree<T> {
+        let node0 = Self::taller_child(node).unwrap();
+        let node1 = Self::taller_child(node0).unwrap();
+        let mut a: SubTree<T>;
+        let mut b: SubTree<T>;
+        let mut c: SubTree<T>;
+        let t0: SubTree<T>;
+        let t1: SubTree<T>;
+        let t2: SubTree<T>;
+        let t3: SubTree<T>;
+
+        unsafe {
+            if node0.as_ref().is_lc() {
+                c = self.bst.bin_tree.secede(node);
+                t3 = Self::secede(&mut c, node.as_ref().rc());
+                if node1.as_ref().is_lc() {
+                    b = c.secede(node0);
+                    t2 = Self::secede(&mut b, node0.as_ref().rc());
+                    a = b.secede(node1);
+                    t0 = Self::secede(&mut a, node1.as_ref().lc());
+                    t1 = Self::secede(&mut a, node1.as_ref().rc());
+                } else {
+                    a = c.secede(node0);
+                    t0 = Self::secede(&mut a, node0.as_ref().lc());
+                    b = a.secede(node1);
+                    t1 = Self::secede(&mut b, node1.as_ref().lc());
+                    t2 = Self::secede(&mut b, node1.as_ref().rc());
+                }
+            } else {
+                a = self.bst.bin_tree.secede(node);
+                t0 = Self::secede(&mut a, node.as_ref().lc());
+                if node1.as_ref().is_lc() {
+                    c = a.secede(node0);
+                    t3 = Self::secede(&mut c, node0.as_ref().rc());
+                    b = c.secede(node1);
+                    t1 = Self::secede(&mut b, node1.as_ref().lc());
+                    t2 = Self::secede(&mut b, node1.as_ref().rc());
+                } else {
+                    b = a.secede(node0);
+                    t1 = Self::secede(&mut b, node0.as_ref().lc());
+                    c = b.secede(node1);
+                    t2 = Self::secede(&mut c, node1.as_ref().lc());
+                    t3 = Self::secede(&mut c, node1.as_ref().rc());
+                }
+            }
+        }
+
+        return self.connect34(a, b, c, t0, t1, t2, t3);
+    }
+
+    unsafe fn balance(&mut self, node: Ptr<HBN<T>>) -> Ptr<HBN<T>> {
+        if let Some(node) = node {
+            let out = Some(node);
+            let mut option = node.as_ref().parent();
+            while let Some(node) = option {
+                if !Self::is_avl_balanced(node) {
+                    let is_lc = node.as_ref().is_lc();
+                    let parent = node.as_ref().parent();
+                    let balanced = self.balance_node(node);
+                    if let Some(parent) = parent {
+                        if is_lc {
+                            self.bst.bin_tree.attach_as_lc(parent, balanced)
+                                        .expect(&format!("{:?} {:?}", parent.as_ref().lc(), Some(node)));
+                        } else {
+                            self.bst.bin_tree.attach_as_rc(parent, balanced)
+                                        .expect(&format!("{:?} {:?}", parent.as_ref().rc(), Some(node)));
+                        }
+                    } else {
+                        self.bst.bin_tree = balanced;
+                    }
+
+                    return out;
+                }
+
+                option = node.as_ref().parent();
+            }
+        }
+
+        None
     }
 }

@@ -5,8 +5,6 @@ pub mod search;
 
 use super::malloc_val;
 use std::ptr::{self, NonNull};
-use std::ops::Fn;
-use std::cell::Cell;
 use std::marker::PhantomData;
 
 type Ptr<T> = Option<NonNull<T>>;
@@ -160,23 +158,19 @@ pub trait Node<T>: Sized {
         return succ;
     }
 
-    fn for_each<F: Copy>(node: Ptr<Self>, func: F)
-    where
-        F: Fn(&mut T)
-    {
+    fn size_of(subtree: NonNull<Self>) -> usize {
+        let mut size = 1;
+
         unsafe {
-            if let Some(node) = node {
-                Self::for_each(node.as_ref().lc(), func);
-                Self::for_each(node.as_ref().rc(), func);
+            if let Some(lc) = subtree.as_ref().lc() {
+                size += Self::size_of(lc);
+            }
+            if let Some(rc) = subtree.as_ref().rc() {
+                size += Self::size_of(rc);
             }
         }
-    }
 
-    fn size_of(subtree: NonNull<Self>) -> usize {
-        let size = Cell::new(1usize);
-        Self::for_each(Some(subtree), |_| {size.set(size.get() + 1)});
-
-        size.get()
+        size
     }
 }
 
@@ -304,7 +298,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         &mut self,
         mut node: NonNull<N>,
         subtree: Self
-    ) -> Result<NonNull<N>, InsertErr> {
+    ) -> Result<Ptr<N>, InsertErr> {
         unsafe {
             node.as_mut().set_lc(&subtree.root)?;
 
@@ -313,7 +307,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
                 root.as_mut().set_parent(&Some(node));
             }
 
-            Ok(node.as_ref().lc().unwrap())
+            Ok(node.as_ref().lc())
         }
     }
 
@@ -321,7 +315,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         &mut self,
         mut node: NonNull<N>,
         subtree: Self
-    ) -> Result<NonNull<N>, InsertErr> {
+    ) -> Result<Ptr<N>, InsertErr> {
         unsafe {
             node.as_mut().set_rc(&subtree.root)?;
 
@@ -330,7 +324,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
                 root.as_mut().set_parent(&Some(node));
             }
 
-            Ok(node.as_ref().rc().unwrap())
+            Ok(node.as_ref().rc())
         }
     }
 
