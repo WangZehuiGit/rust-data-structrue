@@ -37,9 +37,9 @@ fn test_iter() {
 
 #[test]
 fn test_find() {
-    let v = Vector::from_slice(&[1,34,354,23]);
+    let v = Vector::from_slice(&[1, 34, 354, 23]);
     let i = v.find(&354);
-    
+
     assert_eq!(i, Some(2));
 }
 

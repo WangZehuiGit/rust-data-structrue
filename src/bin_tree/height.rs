@@ -1,11 +1,11 @@
+use super::private;
+use super::private::HeightNode;
+use super::InsertErr;
 use super::Node;
 use super::Ptr;
-use super::InsertErr;
-use std::ptr::NonNull;
 use std::cmp::max;
 use std::marker::PhantomData;
-use super::private::HeightNode;
-use super::private;
+use std::ptr::NonNull;
 
 pub trait GetHeight<T>: Node<T> {
     fn height(&self) -> usize;
@@ -14,7 +14,7 @@ pub trait GetHeight<T>: Node<T> {
 pub trait UpdateHeight<T>: HeightNode<T> {
     fn stature(ptr: Ptr<Self>) -> usize {
         if let Some(node) = ptr {
-            return unsafe {node.as_ref().height()};
+            return unsafe { node.as_ref().height() };
         }
 
         0
@@ -22,13 +22,10 @@ pub trait UpdateHeight<T>: HeightNode<T> {
 
     fn update_height(mut node: NonNull<Self>) -> usize {
         unsafe {
+            let (lc, rc) = (node.as_ref().lc(), node.as_ref().rc());
 
-            let (lc, rc) = (
-                node.as_ref().lc(),
-                node.as_ref().rc()
-            );
-
-            node.as_mut().set_height(&(1 + max(Self::stature(lc), Self::stature(rc))));
+            node.as_mut()
+                .set_height(&(1 + max(Self::stature(lc), Self::stature(rc))));
 
             node.as_ref().height()
         }
@@ -37,27 +34,25 @@ pub trait UpdateHeight<T>: HeightNode<T> {
     fn update_height_above(mut node: NonNull<Self>) {
         Self::update_height(node);
 
-        unsafe{
+        unsafe {
             while let Some(parent) = node.as_ref().parent() {
                 Self::update_height(parent);
                 node = parent;
-            } 
-        } 
-    } 
+            }
+        }
+    }
 }
 
 pub struct HeightBinNode<T, N: private::Node<T>> {
     node: N,
     height: usize,
-    marker: PhantomData<T>
+    marker: PhantomData<T>,
 }
 
 impl<T, N: private::Node<T>> HeightBinNode<T, N> {
     fn into(node: Ptr<Self>) -> Ptr<N> {
         if let Some(mut node) = node {
-            return unsafe {
-                NonNull::new(&mut node.as_mut().node)
-            }
+            return unsafe { NonNull::new(&mut node.as_mut().node) };
         } else {
             None
         }
@@ -92,13 +87,13 @@ impl<T, N: private::Node<T>> Node<T> for HeightBinNode<T, N> {
 
 impl<T, N: private::Node<T>> private::Node<T> for HeightBinNode<T, N>
 where
-    Self: UpdateHeight<T>
+    Self: UpdateHeight<T>,
 {
     fn new(value: &T, parent: Ptr<Self>) -> Self {
         Self {
             node: N::new(value, Self::into(parent)),
             height: 1,
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 
@@ -106,12 +101,12 @@ where
         let parent = self.node.parent();
 
         self.node.set_parent(&Self::into(*value));
-        
+
         if parent != None {
             Self::update_height_above(Self::from(parent).unwrap());
         }
     }
-    
+
     fn set_lc(&mut self, value: &Ptr<Self>) -> Result<(), InsertErr> {
         let result = self.node.set_lc(&Self::into(*value));
         Self::update_height_above(NonNull::new(self).unwrap());

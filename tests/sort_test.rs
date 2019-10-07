@@ -1,8 +1,8 @@
-extern crate rust_data_structure;
 extern crate rand;
+extern crate rust_data_structure;
 
 //use rust_data_structure::sort::Sort;
-use rust_data_structure::vector::{Vector, Sort};
+use rust_data_structure::vector::{Sort, Vector};
 
 fn make_vec(size: usize) -> Vector<i32> {
     let mut a = Vector::new();

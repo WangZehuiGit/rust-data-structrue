@@ -1,7 +1,7 @@
-use super::{Ptr, InsertErr};
-use super::super::{malloc_val, free};
+use super::super::{free, malloc_val};
 use super::color::{Color, GetColor};
 use super::height::GetHeight;
+use super::{InsertErr, Ptr};
 use std::ptr::NonNull;
 
 pub trait Node<T>: super::Node<T> {
@@ -13,13 +13,10 @@ pub trait Node<T>: super::Node<T> {
     fn insert_as_lc(&mut self, value: &T) -> Result<(), InsertErr> {
         let parent: *mut Self = self;
 
-        self.set_lc (
-            &NonNull::new (
-                malloc_val(
-                    &Self::new(value, NonNull::new(parent))
-                )
-            )
-        )?;
+        self.set_lc(&NonNull::new(malloc_val(&Self::new(
+            value,
+            NonNull::new(parent),
+        ))))?;
 
         Ok(())
     }
@@ -27,13 +24,10 @@ pub trait Node<T>: super::Node<T> {
     fn insert_as_rc(&mut self, value: &T) -> Result<(), InsertErr> {
         let parent: *mut Self = self;
 
-        self.set_rc (
-            &NonNull::new (
-                malloc_val(
-                    &Self::new(value, NonNull::new(parent))
-                )
-            )
-        )?;
+        self.set_rc(&NonNull::new(malloc_val(&Self::new(
+            value,
+            NonNull::new(parent),
+        ))))?;
 
         Ok(())
     }

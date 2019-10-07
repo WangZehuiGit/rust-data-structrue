@@ -1,11 +1,11 @@
-mod private;
-pub mod height;
 pub mod color;
+pub mod height;
+mod private;
 pub mod search;
 
 use super::malloc_val;
-use std::ptr::{self, NonNull};
 use std::marker::PhantomData;
+use std::ptr::{self, NonNull};
 
 type Ptr<T> = Option<NonNull<T>>;
 type NodePtr<T> = Ptr<BinNode<T>>;
@@ -17,7 +17,7 @@ pub struct InsertErr(&'static str);
 #[derive(Clone, Copy)]
 pub struct Iter<'a, T: 'a, N: 'a + private::Node<T>> {
     ptr: Ptr<N>,
-    marker: PhantomData<&'a mut T>
+    marker: PhantomData<&'a mut T>,
 }
 
 impl<'a, T: 'a, N: 'a + private::Node<T>> Iterator for Iter<'a, T, N> {
@@ -45,7 +45,7 @@ pub struct BinNode<T> {
     pub data: T,
     parent: Option<NonNull<BinNode<T>>>,
     lc: Option<NonNull<BinNode<T>>>,
-    rc: Option<NonNull<BinNode<T>>>
+    rc: Option<NonNull<BinNode<T>>>,
 }
 
 pub trait Node<T>: Sized {
@@ -143,14 +143,14 @@ pub trait Node<T>: Sized {
                 succ = None;
                 let mut node = self;
 
-                while let Some(mut parent) = node.parent() {
+                while let Some(parent) = node.parent() {
                     if node.is_lc() {
                         if let Some(rc) = parent.as_ref().rc() {
                             succ = Some(rc);
                             break;
                         }
                     }
-                    node = & *parent.as_ptr();
+                    node = &*parent.as_ptr();
                 }
             }
         }
@@ -174,7 +174,6 @@ pub trait Node<T>: Sized {
     }
 }
 
-
 impl<T> Node<T> for BinNode<T> {
     fn get(&mut self) -> &mut T {
         &mut self.data
@@ -196,7 +195,7 @@ impl<T> Node<T> for BinNode<T> {
 impl<T> private::Node<T> for BinNode<T> {
     fn new(value: &T, parent: NodePtr<T>) -> Self {
         BinNode {
-            data: unsafe {ptr::read(value)},
+            data: unsafe { ptr::read(value) },
             parent: parent,
             lc: None,
             rc: None,
@@ -245,7 +244,7 @@ impl<T> private::Node<T> for BinNode<T> {
 pub struct BinTree<T, N: private::Node<T>> {
     root: Ptr<N>,
     size: usize,
-    marker: PhantomData<T>
+    marker: PhantomData<T>,
 }
 
 impl<T, N: private::Node<T>> BinTree<T, N> {
@@ -253,7 +252,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         BinTree {
             root: None,
             size: 0,
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 
@@ -274,7 +273,11 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         self.root = NonNull::new(malloc_val(&N::new(value, None)));
     }
 
-    pub fn insert_as_lc(&mut self, mut ptr: NonNull<N>, value: &T) -> Result<NonNull<N>, InsertErr> {
+    pub fn insert_as_lc(
+        &mut self,
+        mut ptr: NonNull<N>,
+        value: &T,
+    ) -> Result<NonNull<N>, InsertErr> {
         unsafe {
             self.size += 1;
 
@@ -284,7 +287,11 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         }
     }
 
-    pub fn insert_as_rc(&mut self, mut ptr: NonNull<N>, value: &T) -> Result<NonNull<N>, InsertErr> {
+    pub fn insert_as_rc(
+        &mut self,
+        mut ptr: NonNull<N>,
+        value: &T,
+    ) -> Result<NonNull<N>, InsertErr> {
         unsafe {
             self.size += 1;
 
@@ -294,10 +301,10 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         }
     }
 
-    pub fn attach_as_lc (
+    pub fn attach_as_lc(
         &mut self,
         mut node: NonNull<N>,
-        subtree: Self
+        subtree: Self,
     ) -> Result<Ptr<N>, InsertErr> {
         unsafe {
             node.as_mut().set_lc(&subtree.root)?;
@@ -311,10 +318,10 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         }
     }
 
-    pub fn attach_as_rc (
+    pub fn attach_as_rc(
         &mut self,
         mut node: NonNull<N>,
-        subtree: Self
+        subtree: Self,
     ) -> Result<Ptr<N>, InsertErr> {
         unsafe {
             node.as_mut().set_rc(&subtree.root)?;
@@ -345,7 +352,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
     pub fn secede(&mut self, mut node: NonNull<N>) -> Self {
         let size = N::size_of(node);
         self.size -= size;
-        
+
         unsafe {
             node.as_mut().set_parent(&None);
         }
@@ -353,7 +360,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
         Self {
             root: Some(node),
             size: size,
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 }
@@ -362,7 +369,7 @@ impl<'a, T: 'a, N: 'a + private::Node<T>> BinTree<T, N> {
     pub fn iter(&'a mut self) -> Iter<'a, T, N> {
         Iter {
             ptr: self.root,
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 }

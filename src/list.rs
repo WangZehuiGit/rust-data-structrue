@@ -1,13 +1,13 @@
-use super::{malloc_val, free};
 use super::queue::Queue;
-use super::sort::Sort;
 use super::search::Ordered;
-use std::ptr::{self, NonNull};
-use std::ops::{Drop, Index, IndexMut, FnMut};
-use std::cmp::{PartialEq, Ordering};
+use super::sort::Sort;
+use super::{free, malloc_val};
+use std::cmp::{Ordering, PartialEq};
 use std::default::Default;
-use std::marker::PhantomData;
 use std::iter::DoubleEndedIterator;
+use std::marker::PhantomData;
+use std::ops::{Drop, FnMut, Index, IndexMut};
+use std::ptr::{self, NonNull};
 
 type Link<T> = Option<NonNull<Node<T>>>;
 
@@ -15,7 +15,7 @@ type Link<T> = Option<NonNull<Node<T>>>;
 pub struct Iter<'a, T: 'a> {
     ptr: *mut Node<T>,
     end: *mut Node<T>,
-    marker: PhantomData<&'a mut T>
+    marker: PhantomData<&'a mut T>,
 }
 
 impl<'a, T: 'a> Iterator for Iter<'a, T> {
@@ -50,30 +50,28 @@ impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
 pub struct Node<T> {
     pub data: T,
     pred: Link<T>,
-    succ: Link<T>
+    succ: Link<T>,
 }
 
 impl<T> Node<T> {
     fn new(value: &T, posi0: Link<T>, posi1: Link<T>) -> Self {
         Node {
-            data: unsafe {ptr::read(value)},
+            data: unsafe { ptr::read(value) },
             pred: posi0,
-            succ: posi1
+            succ: posi1,
         }
     }
 
     fn insert_as_pred(&mut self, value: &T) {
         match self.pred {
             Some(mut node) => unsafe {
-                node.as_mut().succ = NonNull::new(
-                    malloc_val(&(Node::new(value, Some(node), NonNull::new(self))))
-                );
+                node.as_mut().succ = NonNull::new(malloc_val(
+                    &(Node::new(value, Some(node), NonNull::new(self))),
+                ));
                 self.pred = node.as_mut().succ;
             },
             _ => {
-                self.pred = NonNull::new(
-                    malloc_val(&(Node::new(value, None, NonNull::new(self))))
-                );
+                self.pred = NonNull::new(malloc_val(&(Node::new(value, None, NonNull::new(self)))));
             }
         }
     }
@@ -95,7 +93,7 @@ impl<T> Node<T> {
 pub struct List<T> {
     head: *mut Node<T>,
     trail: *mut Node<T>,
-    len: usize
+    len: usize,
 }
 
 impl<T: Default> List<T> {
@@ -103,7 +101,7 @@ impl<T: Default> List<T> {
         let list = List::<T> {
             head: malloc_val(&Node::new(&Default::default(), None, None)),
             trail: malloc_val(&Node::new(&Default::default(), None, None)),
-            len: 0
+            len: 0,
         };
         unsafe {
             (*list.head).succ = NonNull::new(list.trail);
@@ -112,7 +110,7 @@ impl<T: Default> List<T> {
 
         list
     }
-} 
+}
 
 impl<T> List<T> {
     pub fn len(&self) -> usize {
@@ -130,11 +128,11 @@ impl<T> List<T> {
         if index > self.len {
             return None;
         }
-        
+
         let mut ptr: Link<T>;
 
-        if index < self.len/2 {
-            ptr = unsafe {(*self.head).succ};
+        if index < self.len / 2 {
+            ptr = unsafe { (*self.head).succ };
             for _ in 0..index {
                 unsafe {
                     ptr = ptr.unwrap().as_ref().succ();
@@ -142,7 +140,7 @@ impl<T> List<T> {
             }
         } else {
             ptr = NonNull::new(self.trail);
-            for _ in 0..(self.len-index) {
+            for _ in 0..(self.len - index) {
                 unsafe {
                     ptr = ptr.unwrap().as_ref().pred();
                 }
@@ -154,7 +152,7 @@ impl<T> List<T> {
 
     pub fn for_each<F>(&mut self, mut func: F, lo: usize, hi: usize)
     where
-        F: FnMut(&mut T)
+        F: FnMut(&mut T),
     {
         let mut it = self.get(lo);
         let mut cnt = lo;
@@ -169,7 +167,7 @@ impl<T> List<T> {
 
                 it = node.as_ref().succ;
                 cnt += 1;
-           }
+            }
         }
     }
 
@@ -209,12 +207,12 @@ impl<T> List<T> {
     }
 }
 
-impl<'a, T:'a> List<T> {
+impl<'a, T: 'a> List<T> {
     pub fn iter(&mut self) -> Iter<'a, T> {
         Iter {
-            ptr: unsafe {(*self.head).succ().unwrap().as_ptr()},
+            ptr: unsafe { (*self.head).succ().unwrap().as_ptr() },
             end: self.trail,
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 }
@@ -236,7 +234,7 @@ impl<T: PartialEq> List<T> {
 
                 it = node.as_ref().succ;
                 cnt += 1;
-           }
+            }
         }
 
         None
@@ -279,7 +277,7 @@ impl<T: PartialEq> List<T> {
 impl<T: Ord> List<T> {
     pub fn sort<F>(&mut self, cmp: F)
     where
-        F: Fn(&T, &T) -> Ordering
+        F: Fn(&T, &T) -> Ordering,
     {
         unsafe {
             if let Some(mut it) = self.get(1) {
@@ -330,7 +328,7 @@ impl<T> Index<usize> for List<T> {
 
         let node = self.get(i).unwrap();
 
-        unsafe {&(*node.as_ptr()).data}
+        unsafe { &(*node.as_ptr()).data }
     }
 }
 
@@ -342,7 +340,7 @@ impl<T> IndexMut<usize> for List<T> {
 
         let node = self.get(i).unwrap();
 
-        unsafe {&mut (*node.as_ptr()).data}
+        unsafe { &mut (*node.as_ptr()).data }
     }
 }
 

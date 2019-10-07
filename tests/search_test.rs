@@ -1,7 +1,7 @@
 extern crate rust_data_structure;
 
-use rust_data_structure::search::{Ordered, binary_search};
 use rust_data_structure::list::List;
+use rust_data_structure::search::{binary_search, Ordered};
 
 #[test]
 fn test_binary_search() {

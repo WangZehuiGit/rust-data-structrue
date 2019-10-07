@@ -11,12 +11,10 @@ where
     T: Ord + Default,
 {
     pub fn new() -> Self {
-        let mut h = Heap {
-            vec: Vector::new(),
-        };
+        let mut h = Heap { vec: Vector::new() };
 
         h.vec.insert(0, &Default::default());
-        
+
         h
     }
 }
@@ -40,8 +38,7 @@ impl<T: Ord> Heap<T> {
     fn sink(&mut self, mut index: usize) {
         while index <= (self.vec.len() - 1) / 2 {
             let mut max_child = index * 2;
-            if max_child < self.vec.len() - 1 &&
-                self.vec[max_child] < self.vec[max_child + 1] {
+            if max_child < self.vec.len() - 1 && self.vec[max_child] < self.vec[max_child + 1] {
                 max_child += 1;
             }
 
@@ -64,11 +61,11 @@ impl<T: Ord> PriorityQueue<T> for Heap<T> {
 
     fn del_max(&mut self) -> T {
         let len = self.vec.len();
-        let v = unsafe {ptr::read(&self.vec[1])};
+        let v = unsafe { ptr::read(&self.vec[1]) };
         self.vec.swap(1, len - 1);
         self.vec.remove(len - 1, len);
         self.sink(1);
-        
+
         v
     }
 

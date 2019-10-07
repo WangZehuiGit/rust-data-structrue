@@ -1,22 +1,22 @@
-pub use super::sort::Sort;
-use super::{malloc, free};
-use super::stack::Stack;
 use super::search::Ordered;
-use std::ptr;
-use std::ops::{Index, IndexMut, Deref, DerefMut};
+pub use super::sort::Sort;
+use super::stack::Stack;
+use super::{free, malloc};
 use std::cmp::PartialEq;
-use std::marker::PhantomData;
-use std::iter::DoubleEndedIterator;
 use std::fmt;
+use std::iter::DoubleEndedIterator;
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::ptr;
 
-type    Rank = usize;
-const    DEFAULT_CAPACITY: usize = 8;
+type Rank = usize;
+const DEFAULT_CAPACITY: usize = 8;
 
 #[derive(Clone, Copy)]
 pub struct Iter<'a, T: 'a> {
     ptr: *mut T,
     end: *mut T,
-    marker: PhantomData<&'a mut T>
+    marker: PhantomData<&'a mut T>,
 }
 
 impl<'a, T: 'a> Iterator for Iter<'a, T> {
@@ -51,8 +51,8 @@ impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
 pub struct Vector<T> {
     len: Rank,
     capacity: usize,
-    ptr: *mut T
-}    
+    ptr: *mut T,
+}
 
 impl<T> Vector<T> {
     pub fn new() -> Vector<T> {
@@ -65,11 +65,13 @@ impl<T> Vector<T> {
 
     pub fn from_slice(slice: &[T]) -> Vector<T> {
         let new_ptr = malloc(slice.len()).unwrap();
-        unsafe {ptr::copy(slice.as_ptr(), new_ptr, slice.len());}
+        unsafe {
+            ptr::copy(slice.as_ptr(), new_ptr, slice.len());
+        }
         Vector {
             ptr: new_ptr,
             len: slice.len(),
-            capacity: slice.len()
+            capacity: slice.len(),
         }
     }
 
@@ -87,7 +89,7 @@ impl<T> Vector<T> {
 
     pub fn map<F>(&mut self, mut func: F, lo: usize, hi: usize)
     where
-        F: FnMut(&mut T)
+        F: FnMut(&mut T),
     {
         for i in lo..hi {
             func(self.index_mut(i));
@@ -97,16 +99,22 @@ impl<T> Vector<T> {
     pub fn insert(&mut self, rank: Rank, value: &T) {
         self.expand();
         self.len += 1;
-        for i in (rank..(self.len-1)).rev() {
-            unsafe {self[i+1] = ptr::read(&self[i]);}
+        for i in (rank..(self.len - 1)).rev() {
+            unsafe {
+                self[i + 1] = ptr::read(&self[i]);
+            }
         }
-        unsafe {self[rank] = ptr::read(value);}
+        unsafe {
+            self[rank] = ptr::read(value);
+        }
     }
 
     pub fn remove(&mut self, mut lo: Rank, mut hi: Rank) {
         let size = hi - lo;
         while hi < self.len {
-            unsafe {self[lo] = ptr::read(&self[hi]);}
+            unsafe {
+                self[lo] = ptr::read(&self[hi]);
+            }
             lo += 1;
             hi += 1;
         }
@@ -128,7 +136,7 @@ impl<T> Vector<T> {
     }
 
     fn shrink(&mut self) {
-        if self.capacity < 2*DEFAULT_CAPACITY || self.len*4 > self.capacity {
+        if self.capacity < 2 * DEFAULT_CAPACITY || self.len * 4 > self.capacity {
             return;
         }
         unsafe {
@@ -162,8 +170,8 @@ impl<'a, T: 'a> Vector<T> {
     pub fn iter(&mut self) -> Iter<'a, T> {
         Iter {
             ptr: self.ptr,
-            end: unsafe {self.ptr.add(self.len)},
-            marker: PhantomData
+            end: unsafe { self.ptr.add(self.len) },
+            marker: PhantomData,
         }
     }
 }
@@ -172,11 +180,13 @@ impl<T> Clone for Vector<T> {
     fn clone(&self) -> Self {
         let new_ptr = malloc(self.capacity).unwrap();
 
-        unsafe {ptr::copy(self.ptr, new_ptr, self.len);}
+        unsafe {
+            ptr::copy(self.ptr, new_ptr, self.len);
+        }
         Vector {
             ptr: new_ptr,
             len: self.len,
-            capacity: self.capacity
+            capacity: self.capacity,
         }
     }
 }
@@ -194,7 +204,7 @@ impl<T> Index<Rank> for Vector<T> {
         if i >= self.len {
             panic!("array bound!");
         }
-        unsafe {&(*(self.ptr.add(i)))}
+        unsafe { &(*(self.ptr.add(i))) }
     }
 }
 
@@ -203,7 +213,7 @@ impl<T> IndexMut<Rank> for Vector<T> {
         if i >= self.len {
             panic!("array bound!");
         }
-        unsafe {&mut (*(self.ptr.add(i)))}
+        unsafe { &mut (*(self.ptr.add(i))) }
     }
 }
 
@@ -211,19 +221,19 @@ impl<T> Deref for Vector<T> {
     type Target = [T];
 
     fn deref(&self) -> &[T] {
-        unsafe {std::slice::from_raw_parts(self.ptr, self.len)}
+        unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
     }
 }
 
 impl<T> DerefMut for Vector<T> {
     fn deref_mut(&mut self) -> &mut [T] {
-        unsafe {std::slice::from_raw_parts_mut(self.ptr, self.len)}
+        unsafe { std::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
 
 impl<T> PartialEq for Vector<T>
 where
-    T: PartialEq 
+    T: PartialEq,
 {
     fn eq(&self, other: &Vector<T>) -> bool {
         if self.len != other.len {
@@ -240,14 +250,14 @@ where
 
 impl<T> fmt::Debug for Vector<T>
 where
-    T: fmt::Debug 
+    T: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut s = String::new();
         let mut it = 0..self.len;
 
         s.push_str(&format!("[{:?}", self[it.next().unwrap()]));
-        
+
         for i in it {
             s.push_str(&format!(", {:?}", self[i]));
         }

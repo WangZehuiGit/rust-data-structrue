@@ -1,5 +1,5 @@
-use super::{BinNode, BinTree, Ptr, private, Iter, Node};
 use super::height::{HeightBinNode, UpdateHeight};
+use super::{private, BinNode, BinTree, Iter, Node, Ptr};
 use std::cmp::Ordering;
 use std::ptr::NonNull;
 
@@ -8,13 +8,13 @@ type HBN<T> = HeightBinNode<T, BinNode<T>>;
 type SubTree<T> = BinTree<T, HBN<T>>;
 
 pub struct BinarySearchTree<T: Ord, N: private::Node<T>> {
-    bin_tree: BinTree<T, N>
+    bin_tree: BinTree<T, N>,
 }
 
 impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
     pub fn new() -> Self {
         Self {
-            bin_tree: BinTree::new()
+            bin_tree: BinTree::new(),
         }
     }
 
@@ -25,10 +25,10 @@ impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
     pub fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
     where
         F: Fn(K, &T) -> Ordering,
-        Self: 'a
+        Self: 'a,
     {
         if let Some(node) = self.search_node(key, cmp) {
-            return unsafe {Some((*node.as_ptr()).get())};
+            return unsafe { Some((*node.as_ptr()).get()) };
         }
 
         None
@@ -46,9 +46,15 @@ impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
         unsafe {
             while let Some(mut parent) = node {
                 match value.cmp(parent.as_mut().get()) {
-                    Ordering::Equal => {return None;},
-                    Ordering::Less => {node = parent.as_ref().lc();},
-                    Ordering::Greater => {node = parent.as_ref().rc();}
+                    Ordering::Equal => {
+                        return None;
+                    }
+                    Ordering::Less => {
+                        node = parent.as_ref().lc();
+                    }
+                    Ordering::Greater => {
+                        node = parent.as_ref().rc();
+                    }
                 }
 
                 point = parent;
@@ -110,7 +116,7 @@ impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
     pub fn iter<'a>(&'a mut self) -> Iter<'a, T, N>
     where
         T: 'a,
-        N: 'a
+        N: 'a,
     {
         self.bin_tree.iter()
     }
@@ -118,16 +124,22 @@ impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
     fn search_node<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Ptr<N>
     where
         F: Fn(K, &T) -> Ordering,
-        Self: 'a
+        Self: 'a,
     {
         let mut node = self.bin_tree.root();
 
         unsafe {
             while let Some(mut parent) = node {
                 match cmp(key, parent.as_mut().get()) {
-                    Ordering::Equal => {return node;},
-                    Ordering::Less => {node = parent.as_ref().lc();},
-                    Ordering::Greater => {node = parent.as_ref().rc();}
+                    Ordering::Equal => {
+                        return node;
+                    }
+                    Ordering::Less => {
+                        node = parent.as_ref().lc();
+                    }
+                    Ordering::Greater => {
+                        node = parent.as_ref().rc();
+                    }
                 }
             }
         }
@@ -137,13 +149,13 @@ impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
 }
 
 pub struct AVLTree<T: Ord> {
-    bst: BinarySearchTree<T, HBN<T>>
+    bst: BinarySearchTree<T, HBN<T>>,
 }
 
 impl<T: Ord> AVLTree<T> {
     pub fn new() -> Self {
         Self {
-            bst: BinarySearchTree::new()
+            bst: BinarySearchTree::new(),
         }
     }
 
@@ -154,7 +166,7 @@ impl<T: Ord> AVLTree<T> {
     pub fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
     where
         F: Fn(K, &T) -> Ordering,
-        Self: 'a
+        Self: 'a,
     {
         self.bst.search(key, cmp)
     }
@@ -176,7 +188,7 @@ impl<T: Ord> AVLTree<T> {
     pub fn iter<'a>(&'a mut self) -> Iter<'a, T, HBN<T>>
     where
         T: 'a,
-        HBN<T>: 'a
+        HBN<T>: 'a,
     {
         self.bst.iter()
     }
@@ -203,10 +215,12 @@ impl<T: Ord> AVLTree<T> {
             match HBN::stature(node.as_ref().lc()).cmp(&HBN::stature(node.as_ref().rc())) {
                 Ordering::Greater => node.as_ref().lc(),
                 Ordering::Less => node.as_ref().rc(),
-                Ordering::Equal => if node.as_ref().is_lc() {
-                    node.as_ref().lc()
-                } else {
-                    node.as_ref().rc()
+                Ordering::Equal => {
+                    if node.as_ref().is_lc() {
+                        node.as_ref().lc()
+                    } else {
+                        node.as_ref().rc()
+                    }
                 }
             }
         }
@@ -220,12 +234,12 @@ impl<T: Ord> AVLTree<T> {
         t0: SubTree<T>,
         t1: SubTree<T>,
         t2: SubTree<T>,
-        t3: SubTree<T>
+        t3: SubTree<T>,
     ) -> SubTree<T> {
         let root = b.root().unwrap();
         let lc = b.attach_as_lc(root, a).unwrap();
         let rc = b.attach_as_rc(root, c).unwrap();
-        
+
         if let Some(lc) = lc {
             b.attach_as_lc(lc, t0).unwrap();
             b.attach_as_rc(lc, t1).unwrap();
@@ -307,11 +321,15 @@ impl<T: Ord> AVLTree<T> {
                     let balanced = self.balance_node(node);
                     if let Some(parent) = parent {
                         if is_lc {
-                            self.bst.bin_tree.attach_as_lc(parent, balanced)
-                                        .expect(&format!("{:?} {:?}", parent.as_ref().lc(), Some(node)));
+                            self.bst
+                                .bin_tree
+                                .attach_as_lc(parent, balanced)
+                                .expect(&format!("{:?} {:?}", parent.as_ref().lc(), Some(node)));
                         } else {
-                            self.bst.bin_tree.attach_as_rc(parent, balanced)
-                                        .expect(&format!("{:?} {:?}", parent.as_ref().rc(), Some(node)));
+                            self.bst
+                                .bin_tree
+                                .attach_as_rc(parent, balanced)
+                                .expect(&format!("{:?} {:?}", parent.as_ref().rc(), Some(node)));
                         }
                     } else {
                         self.bst.bin_tree = balanced;

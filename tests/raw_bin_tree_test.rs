@@ -1,6 +1,6 @@
 extern crate rust_data_structure;
 
-use rust_data_structure::bin_tree::{RawBinTree, InsertErr};
+use rust_data_structure::bin_tree::{InsertErr, RawBinTree};
 
 #[test]
 fn test_base() -> Result<(), InsertErr> {
@@ -35,7 +35,7 @@ fn test_attach() -> Result<(), InsertErr> {
     let r = t.secede(r);
     t.attach_as_lc(root, r)?;
     t.attach_as_rc(root, l)?;
-    
+
     assert_eq!(t.iter().count(), 3);
     assert_eq!(t.size(), 3);
 

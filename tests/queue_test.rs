@@ -1,7 +1,7 @@
 extern crate rust_data_structure;
 
-use rust_data_structure::queue::*;
 use rust_data_structure::list::*;
+use rust_data_structure::queue::*;
 
 #[test]
 fn test_enqueue_dequeue() {

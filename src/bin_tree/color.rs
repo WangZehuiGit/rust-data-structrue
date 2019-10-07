@@ -3,7 +3,7 @@ use super::Node;
 #[derive(Clone, Copy)]
 pub enum Color {
     Red,
-    Black
+    Black,
 }
 
 pub trait GetColor<T>: Node<T> {

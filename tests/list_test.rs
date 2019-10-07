@@ -70,8 +70,8 @@ fn test_for_each() {
     let arr = [1, 1, 1, 1, 1, 1, 54, 531, 213, 0, 0];
     let mut it = arr.iter();
 
-    l.for_each(|x| {*x = 1}, 0, 6);
-    l.for_each(|x| {assert_eq!(it.next().unwrap(), x)}, 0, 11);
+    l.for_each(|x| *x = 1, 0, 6);
+    l.for_each(|x| assert_eq!(it.next().unwrap(), x), 0, 11);
 }
 
 #[test]

@@ -1,10 +1,10 @@
-use std::{cmp, ops};
 use std::iter::FromIterator;
+use std::{cmp, ops};
 
 fn swap<R>(mut a: R, mut b: R)
 where
     R: ops::DerefMut,
-    R::Target: Copy
+    R::Target: Copy,
 {
     let tmp = *a;
     *a = *b;
@@ -16,10 +16,7 @@ where
     I: Iterator + Clone,
     I::Item: ops::DerefMut,
     <I::Item as ops::Deref>::Target: Copy,
-    F: ops::Fn(
-        &<I::Item as ops::Deref>::Target,
-        &<I::Item as ops::Deref>::Target
-    ) -> cmp::Ordering
+    F: ops::Fn(&<I::Item as ops::Deref>::Target, &<I::Item as ops::Deref>::Target) -> cmp::Ordering,
 {
     let mut i = 0usize;
     let mut j = mid + 1;
@@ -47,10 +44,7 @@ where
     I: Iterator + Clone,
     I::Item: ops::DerefMut,
     <I::Item as ops::Deref>::Target: Copy,
-    F: ops::Fn(
-        &<I::Item as ops::Deref>::Target,
-        &<I::Item as ops::Deref>::Target
-    ) -> cmp::Ordering
+    F: ops::Fn(&<I::Item as ops::Deref>::Target, &<I::Item as ops::Deref>::Target) -> cmp::Ordering,
 {
     let mut point = it.next().unwrap();
     let mut it0 = it.clone();
@@ -87,11 +81,8 @@ where
     I: Iterator + Clone,
     I::Item: ops::DerefMut,
     <I::Item as ops::Deref>::Target: Copy,
-    F: ops::Fn(
-        &<I::Item as ops::Deref>::Target,
-        &<I::Item as ops::Deref>::Target
-    ) -> cmp::Ordering
-    + Copy
+    F: ops::Fn(&<I::Item as ops::Deref>::Target, &<I::Item as ops::Deref>::Target) -> cmp::Ordering
+        + Copy,
 {
     if hi - lo <= 1 {
         return;
@@ -107,7 +98,7 @@ pub trait Sort<I>
 where
     I: Iterator + Copy,
     I::Item: ops::DerefMut,
-    <I::Item as ops::Deref>::Target: Copy
+    <I::Item as ops::Deref>::Target: Copy,
 {
     fn iter(&mut self) -> I;
     fn len(&self) -> usize;
@@ -116,15 +107,15 @@ where
     where
         F: ops::Fn(
             &<I::Item as ops::Deref>::Target,
-            &<I::Item as ops::Deref>::Target
-        ) -> cmp::Ordering
+            &<I::Item as ops::Deref>::Target,
+        ) -> cmp::Ordering,
     {
         let it = self.iter();
 
         for len in (2..=self.len()).rev() {
-            let mut it0 = it.take(len - 1);
-            let mut it1 = it.take(len).skip(1);
-            
+            let it0 = it.take(len - 1);
+            let it1 = it.take(len).skip(1);
+
             for (n0, n1) in it0.zip(it1) {
                 if compare(&n0, &n1) == cmp::Ordering::Greater {
                     swap(n0, n1);
@@ -137,13 +128,13 @@ where
     where
         F: ops::Fn(
             &<I::Item as ops::Deref>::Target,
-            &<I::Item as ops::Deref>::Target
-        ) -> cmp::Ordering
+            &<I::Item as ops::Deref>::Target,
+        ) -> cmp::Ordering,
     {
         let it = self.iter();
 
         for (i, mut n) in it.take(self.len() - 1).enumerate() {
-            let mut it0 = it.skip(i + 1);
+            let it0 = it.skip(i + 1);
             for mut n0 in it0 {
                 if compare(&n, &n0) == cmp::Ordering::Greater {
                     swap(&mut *n, &mut *n0);
@@ -156,8 +147,8 @@ where
     where
         F: ops::Fn(
             &<I::Item as ops::Deref>::Target,
-            &<I::Item as ops::Deref>::Target
-        ) -> cmp::Ordering
+            &<I::Item as ops::Deref>::Target,
+        ) -> cmp::Ordering,
     {
         let it = self.iter();
 
@@ -181,14 +172,16 @@ where
     where
         F: ops::Fn(
             &<I::Item as ops::Deref>::Target,
-            &<I::Item as ops::Deref>::Target
-        ) -> cmp::Ordering
+            &<I::Item as ops::Deref>::Target,
+        ) -> cmp::Ordering,
     {
         let length = self.len();
         let mut h = 1usize;
         let it = self.iter();
 
-        while h < length/3 {h = 3*h + 1;}
+        while h < length / 3 {
+            h = 3 * h + 1;
+        }
 
         while h >= 1 {
             let it0 = it.step_by(h);
@@ -216,20 +209,20 @@ where
     where
         F: ops::Fn(
             &<I::Item as ops::Deref>::Target,
-            &<I::Item as ops::Deref>::Target
-        ) -> cmp::Ordering
+            &<I::Item as ops::Deref>::Target,
+        ) -> cmp::Ordering,
     {
         let len = self.len();
         match len {
             0 | 1 => return,
-            _ => ()
+            _ => (),
         }
 
         let it = self.iter();
 
         for s in (1..).map(|x| 1 << x).take_while(|x| *x < len * 2) {
             for i in (0..len).step_by(s) {
-                merge(it.skip(i).take(s), s/2 - 1, &compare);
+                merge(it.skip(i).take(s), s / 2 - 1, &compare);
             }
         }
     }
@@ -238,8 +231,8 @@ where
     where
         F: ops::Fn(
             &<I::Item as ops::Deref>::Target,
-            &<I::Item as ops::Deref>::Target
-        ) -> cmp::Ordering
+            &<I::Item as ops::Deref>::Target,
+        ) -> cmp::Ordering,
     {
         quick_sort_rec(self.iter(), &compare, 0, self.len());
     }
