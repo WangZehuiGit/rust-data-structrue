@@ -1,16 +1,17 @@
 use super::height::{HeightBinNode, UpdateHeight};
-use super::{private, BinNode, BinTree, Iter, Node, Ptr};
+use super::{BinNode, BinTree, Iter, Ptr};
+use super::node::Node;
 use std::cmp::Ordering;
 use std::ptr::NonNull;
 
 pub type BST<T> = BinarySearchTree<T, BinNode<T>>;
 type SubTree<T> = BinTree<T, HeightBinNode<T>>;
 
-pub struct BinarySearchTree<T: Ord, N: private::Node<T>> {
+pub struct BinarySearchTree<T: Ord, N: Node<T>> {
     bin_tree: BinTree<T, N>,
 }
 
-impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
+impl<T: Ord, N: Node<T>> BinarySearchTree<T, N> {
     pub fn new() -> Self {
         Self {
             bin_tree: BinTree::new(),

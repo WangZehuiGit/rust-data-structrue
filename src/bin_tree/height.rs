@@ -1,7 +1,5 @@
-use super::private;
-use super::private::HeightNode;
+use super::node::{Node, HeightNode};
 use super::InsertErr;
-use super::Node;
 use super::Ptr;
 use super::BinNode;
 use std::cmp::max;
@@ -66,7 +64,10 @@ impl<T> HeightBinNode<T> {
     }
 }
 
-impl<T> Node<T> for HeightBinNode<T> {
+impl<T> Node<T> for HeightBinNode<T>
+where
+    Self: UpdateHeight<T>,
+{
     fn get(&mut self) -> &mut T {
         self.node.get()
     }
@@ -82,12 +83,7 @@ impl<T> Node<T> for HeightBinNode<T> {
     fn rc(&self) -> Ptr<Self> {
         Self::from(self.node.rc())
     }
-}
 
-impl<T> private::Node<T> for HeightBinNode<T>
-where
-    Self: UpdateHeight<T>,
-{
     fn new(value: &T, parent: Ptr<Self>) -> Self {
         Self {
             node: BinNode::new(value, Self::into(parent)),

@@ -1,6 +1,6 @@
-pub mod color;
-pub mod height;
-mod private;
+mod color;
+mod height;
+mod node;
 pub mod search;
 
 use super::malloc_val;
@@ -15,12 +15,12 @@ pub type RawBinTree<T> = BinTree<T, BinNode<T>>;
 pub struct InsertErr(&'static str);
 
 #[derive(Clone, Copy)]
-pub struct Iter<'a, T: 'a, N: 'a + private::Node<T>> {
+pub struct Iter<'a, T: 'a, N: 'a + node::Node<T>> {
     ptr: Ptr<N>,
     marker: PhantomData<&'a mut T>,
 }
 
-impl<'a, T: 'a, N: 'a + private::Node<T>> Iterator for Iter<'a, T, N> {
+impl<'a, T: 'a, N: 'a + node::Node<T>> Iterator for Iter<'a, T, N> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<&'a mut T> {
@@ -48,133 +48,7 @@ pub struct BinNode<T> {
     rc: Option<NonNull<BinNode<T>>>,
 }
 
-pub trait Node<T>: Sized {
-    fn get(&mut self) -> &mut T;
-    fn parent(&self) -> Ptr<Self>;
-    fn lc(&self) -> Ptr<Self>;
-    fn rc(&self) -> Ptr<Self>;
-
-    fn swap(mut a: NonNull<Self>, mut b: NonNull<Self>) {
-        unsafe {
-            ptr::swap(a.as_mut().get(), b.as_mut().get());
-        }
-    }
-
-    fn is_root(&self) -> bool {
-        self.parent() == None
-    }
-
-    fn is_lc(&self) -> bool {
-        let self_ptr = self as *const Self;
-
-        unsafe {
-            if let Some(node) = self.parent() {
-                if let Some(lc) = node.as_ref().lc() {
-                    return self_ptr == lc.as_ptr();
-                }
-            }
-
-            false
-        }
-    }
-
-    fn is_rc(&self) -> bool {
-        !self.is_lc() && !self.is_root()
-    }
-
-    fn has_lc(&self) -> bool {
-        self.lc() != None
-    }
-
-    fn has_rc(&self) -> bool {
-        self.rc() != None
-    }
-
-    fn is_leaf(&self) -> bool {
-        !self.has_lc() && !self.has_rc()
-    }
-
-    fn has_double_branch(&self) -> bool {
-        self.has_lc() && self.has_rc()
-    }
-
-    fn succ(&self) -> Ptr<Self> {
-        let mut succ: Ptr<Self>;
-
-        unsafe {
-            if let Some(mut node) = self.rc() {
-                succ = self.rc();
-                while let Some(next) = node.as_ref().lc() {
-                    succ = Some(next);
-                    node = next;
-                }
-            } else {
-                succ = None;
-
-                if let Some(mut node) = self.parent() {
-                    if self.is_lc() {
-                        succ = Some(node);
-                    } else {
-                        while let Some(next) = node.as_ref().parent() {
-                            node = next;
-
-                            if node.as_ref().is_lc() {
-                                succ = Some(next);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return succ;
-    }
-
-    fn next(&self) -> Ptr<Self> {
-        let mut succ: Ptr<Self>;
-
-        unsafe {
-            if let Some(_) = self.lc() {
-                succ = self.lc();
-            } else if let Some(_) = self.rc() {
-                succ = self.rc();
-            } else {
-                succ = None;
-                let mut node = self;
-
-                while let Some(parent) = node.parent() {
-                    if node.is_lc() {
-                        if let Some(rc) = parent.as_ref().rc() {
-                            succ = Some(rc);
-                            break;
-                        }
-                    }
-                    node = &*parent.as_ptr();
-                }
-            }
-        }
-
-        return succ;
-    }
-
-    fn size_of(subtree: NonNull<Self>) -> usize {
-        let mut size = 1;
-
-        unsafe {
-            if let Some(lc) = subtree.as_ref().lc() {
-                size += Self::size_of(lc);
-            }
-            if let Some(rc) = subtree.as_ref().rc() {
-                size += Self::size_of(rc);
-            }
-        }
-
-        size
-    }
-}
-
-impl<T> Node<T> for BinNode<T> {
+impl<T> node::Node<T> for BinNode<T> {
     fn get(&mut self) -> &mut T {
         &mut self.data
     }
@@ -190,9 +64,7 @@ impl<T> Node<T> for BinNode<T> {
     fn rc(&self) -> NodePtr<T> {
         self.rc
     }
-}
 
-impl<T> private::Node<T> for BinNode<T> {
     fn new(value: &T, parent: NodePtr<T>) -> Self {
         BinNode {
             data: unsafe { ptr::read(value) },
@@ -241,13 +113,13 @@ impl<T> private::Node<T> for BinNode<T> {
     }
 }
 
-pub struct BinTree<T, N: private::Node<T>> {
+pub struct BinTree<T, N: node::Node<T>> {
     root: Ptr<N>,
     size: usize,
     marker: PhantomData<T>,
 }
 
-impl<T, N: private::Node<T>> BinTree<T, N> {
+impl<T, N: node::Node<T>> BinTree<T, N> {
     pub fn new() -> Self {
         BinTree {
             root: None,
@@ -365,7 +237,7 @@ impl<T, N: private::Node<T>> BinTree<T, N> {
     }
 }
 
-impl<'a, T: 'a, N: 'a + private::Node<T>> BinTree<T, N> {
+impl<'a, T: 'a, N: 'a + node::Node<T>> BinTree<T, N> {
     pub fn iter(&'a mut self) -> Iter<'a, T, N> {
         Iter {
             ptr: self.root,
@@ -374,7 +246,7 @@ impl<'a, T: 'a, N: 'a + private::Node<T>> BinTree<T, N> {
     }
 }
 
-impl<T, N: private::Node<T>> Drop for BinTree<T, N> {
+impl<T, N: node::Node<T>> Drop for BinTree<T, N> {
     fn drop(&mut self) {
         if let Some(root) = self.root {
             unsafe {
