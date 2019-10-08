@@ -4,8 +4,7 @@ use std::cmp::Ordering;
 use std::ptr::NonNull;
 
 pub type BST<T> = BinarySearchTree<T, BinNode<T>>;
-type HBN<T> = HeightBinNode<T, BinNode<T>>;
-type SubTree<T> = BinTree<T, HBN<T>>;
+type SubTree<T> = BinTree<T, HeightBinNode<T>>;
 
 pub struct BinarySearchTree<T: Ord, N: private::Node<T>> {
     bin_tree: BinTree<T, N>,
@@ -149,7 +148,7 @@ impl<T: Ord, N: private::Node<T>> BinarySearchTree<T, N> {
 }
 
 pub struct AVLTree<T: Ord> {
-    bst: BinarySearchTree<T, HBN<T>>,
+    bst: BinarySearchTree<T, HeightBinNode<T>>,
 }
 
 impl<T: Ord> AVLTree<T> {
@@ -171,32 +170,32 @@ impl<T: Ord> AVLTree<T> {
         self.bst.search(key, cmp)
     }
 
-    pub fn insert(&mut self, value: &T) -> Ptr<HBN<T>> {
+    pub fn insert(&mut self, value: &T) -> Ptr<HeightBinNode<T>> {
         unsafe {
             let node = self.bst.insert(value);
             return self.balance(node);
         }
     }
 
-    pub fn remove(&mut self, value: &T) -> Ptr<HBN<T>> {
+    pub fn remove(&mut self, value: &T) -> Ptr<HeightBinNode<T>> {
         unsafe {
             let node = self.bst.remove(value);
             return self.balance(node);
         }
     }
 
-    pub fn iter<'a>(&'a mut self) -> Iter<'a, T, HBN<T>>
+    pub fn iter<'a>(&'a mut self) -> Iter<'a, T, HeightBinNode<T>>
     where
         T: 'a,
-        HBN<T>: 'a,
+        HeightBinNode<T>: 'a,
     {
         self.bst.iter()
     }
 
-    fn bal_fac(node: NonNull<HBN<T>>) -> usize {
+    fn bal_fac(node: NonNull<HeightBinNode<T>>) -> usize {
         unsafe {
-            let a = HBN::stature(node.as_ref().lc());
-            let b = HBN::stature(node.as_ref().rc());
+            let a = HeightBinNode::stature(node.as_ref().lc());
+            let b = HeightBinNode::stature(node.as_ref().rc());
 
             if a < b {
                 return b - a;
@@ -206,13 +205,13 @@ impl<T: Ord> AVLTree<T> {
         }
     }
 
-    fn is_avl_balanced(node: NonNull<HBN<T>>) -> bool {
+    fn is_avl_balanced(node: NonNull<HeightBinNode<T>>) -> bool {
         Self::bal_fac(node) < 2
     }
 
-    fn taller_child(node: NonNull<HBN<T>>) -> Ptr<HBN<T>> {
+    fn taller_child(node: NonNull<HeightBinNode<T>>) -> Ptr<HeightBinNode<T>> {
         unsafe {
-            match HBN::stature(node.as_ref().lc()).cmp(&HBN::stature(node.as_ref().rc())) {
+            match HeightBinNode::stature(node.as_ref().lc()).cmp(&HeightBinNode::stature(node.as_ref().rc())) {
                 Ordering::Greater => node.as_ref().lc(),
                 Ordering::Less => node.as_ref().rc(),
                 Ordering::Equal => {
@@ -252,7 +251,7 @@ impl<T: Ord> AVLTree<T> {
         b
     }
 
-    fn secede(tree: &mut SubTree<T>, node: Ptr<HBN<T>>) -> SubTree<T> {
+    fn secede(tree: &mut SubTree<T>, node: Ptr<HeightBinNode<T>>) -> SubTree<T> {
         if let Some(node) = node {
             return tree.secede(node);
         } else {
@@ -260,7 +259,7 @@ impl<T: Ord> AVLTree<T> {
         }
     }
 
-    fn balance_node(&mut self, node: NonNull<HBN<T>>) -> SubTree<T> {
+    fn balance_node(&mut self, node: NonNull<HeightBinNode<T>>) -> SubTree<T> {
         let node0 = Self::taller_child(node).unwrap();
         let node1 = Self::taller_child(node0).unwrap();
         let mut a: SubTree<T>;
@@ -310,7 +309,7 @@ impl<T: Ord> AVLTree<T> {
         return self.connect34(a, b, c, t0, t1, t2, t3);
     }
 
-    unsafe fn balance(&mut self, node: Ptr<HBN<T>>) -> Ptr<HBN<T>> {
+    unsafe fn balance(&mut self, node: Ptr<HeightBinNode<T>>) -> Ptr<HeightBinNode<T>> {
         if let Some(node) = node {
             let out = Some(node);
             let mut option = node.as_ref().parent();

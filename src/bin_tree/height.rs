@@ -3,8 +3,8 @@ use super::private::HeightNode;
 use super::InsertErr;
 use super::Node;
 use super::Ptr;
+use super::BinNode;
 use std::cmp::max;
-use std::marker::PhantomData;
 use std::ptr::NonNull;
 
 pub trait GetHeight<T>: Node<T> {
@@ -43,14 +43,13 @@ pub trait UpdateHeight<T>: HeightNode<T> {
     }
 }
 
-pub struct HeightBinNode<T, N: private::Node<T>> {
-    node: N,
+pub struct HeightBinNode<T> {
+    node: BinNode<T>,
     height: usize,
-    marker: PhantomData<T>,
 }
 
-impl<T, N: private::Node<T>> HeightBinNode<T, N> {
-    fn into(node: Ptr<Self>) -> Ptr<N> {
+impl<T> HeightBinNode<T> {
+    fn into(node: Ptr<Self>) -> Ptr<BinNode<T>> {
         if let Some(mut node) = node {
             return unsafe { NonNull::new(&mut node.as_mut().node) };
         } else {
@@ -58,16 +57,16 @@ impl<T, N: private::Node<T>> HeightBinNode<T, N> {
         }
     }
 
-    fn from(node: Ptr<N>) -> Ptr<Self> {
+    fn from(node: Ptr<BinNode<T>>) -> Ptr<Self> {
         if let Some(node) = node {
-            return NonNull::new(node.as_ptr() as *mut HeightBinNode<T, N>);
+            return NonNull::new(node.as_ptr() as *mut HeightBinNode<T>);
         } else {
             None
         }
     }
 }
 
-impl<T, N: private::Node<T>> Node<T> for HeightBinNode<T, N> {
+impl<T> Node<T> for HeightBinNode<T> {
     fn get(&mut self) -> &mut T {
         self.node.get()
     }
@@ -85,15 +84,14 @@ impl<T, N: private::Node<T>> Node<T> for HeightBinNode<T, N> {
     }
 }
 
-impl<T, N: private::Node<T>> private::Node<T> for HeightBinNode<T, N>
+impl<T> private::Node<T> for HeightBinNode<T>
 where
     Self: UpdateHeight<T>,
 {
     fn new(value: &T, parent: Ptr<Self>) -> Self {
         Self {
-            node: N::new(value, Self::into(parent)),
+            node: BinNode::new(value, Self::into(parent)),
             height: 1,
-            marker: PhantomData,
         }
     }
 
@@ -122,16 +120,16 @@ where
     }
 }
 
-impl<T, N: private::Node<T>> GetHeight<T> for HeightBinNode<T, N> {
+impl<T> GetHeight<T> for HeightBinNode<T> {
     fn height(&self) -> usize {
         self.height
     }
 }
 
-impl<T, N: private::Node<T>> HeightNode<T> for HeightBinNode<T, N> {
+impl<T> HeightNode<T> for HeightBinNode<T> {
     fn set_height(&mut self, value: &usize) {
         self.height = *value;
     }
 }
 
-impl<T, N: private::Node<T>> UpdateHeight<T> for HeightBinNode<T, N> {}
+impl<T> UpdateHeight<T> for HeightBinNode<T> {}
