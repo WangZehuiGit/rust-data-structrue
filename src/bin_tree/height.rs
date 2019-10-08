@@ -1,13 +1,9 @@
-use super::node::{Node, HeightNode};
+use super::node::{HeightNode, Node};
+use super::BinNode;
 use super::InsertErr;
 use super::Ptr;
-use super::BinNode;
 use std::cmp::max;
 use std::ptr::NonNull;
-
-pub trait GetHeight<T>: Node<T> {
-    fn height(&self) -> usize;
-}
 
 pub trait UpdateHeight<T>: HeightNode<T> {
     fn stature(ptr: Ptr<Self>) -> usize {
@@ -116,15 +112,13 @@ where
     }
 }
 
-impl<T> GetHeight<T> for HeightBinNode<T> {
-    fn height(&self) -> usize {
-        self.height
-    }
-}
-
 impl<T> HeightNode<T> for HeightBinNode<T> {
     fn set_height(&mut self, value: &usize) {
         self.height = *value;
+    }
+
+    fn height(&self) -> usize {
+        self.height
     }
 }
 

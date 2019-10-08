@@ -1,6 +1,6 @@
 use super::height::{HeightBinNode, UpdateHeight};
-use super::{BinNode, BinTree, Iter, Ptr};
 use super::node::Node;
+use super::{BinNode, BinTree, Iter, Ptr};
 use std::cmp::Ordering;
 use std::ptr::NonNull;
 
@@ -212,7 +212,9 @@ impl<T: Ord> AVLTree<T> {
 
     fn taller_child(node: NonNull<HeightBinNode<T>>) -> Ptr<HeightBinNode<T>> {
         unsafe {
-            match HeightBinNode::stature(node.as_ref().lc()).cmp(&HeightBinNode::stature(node.as_ref().rc())) {
+            match HeightBinNode::stature(node.as_ref().lc())
+                .cmp(&HeightBinNode::stature(node.as_ref().rc()))
+            {
                 Ordering::Greater => node.as_ref().lc(),
                 Ordering::Less => node.as_ref().rc(),
                 Ordering::Equal => {

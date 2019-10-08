@@ -1,6 +1,5 @@
 use super::super::{free, malloc_val};
-use super::color::{Color, GetColor};
-use super::height::GetHeight;
+use super::color::Color;
 use super::{InsertErr, Ptr};
 use std::ptr::{self, NonNull};
 
@@ -173,10 +172,12 @@ pub trait Node<T>: Sized {
     }
 }
 
-pub trait ColorNode<T>: GetColor<T> + Node<T> {
+pub trait ColorNode<T>: Node<T> {
     fn set_color(&mut self, color: Color);
+    fn color(&self) -> Color;
 }
 
-pub trait HeightNode<T>: GetHeight<T> + Node<T> {
+pub trait HeightNode<T>: Node<T> {
     fn set_height(&mut self, value: &usize);
+    fn height(&self) -> usize;
 }
