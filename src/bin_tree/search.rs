@@ -7,22 +7,37 @@ use std::ptr::NonNull;
 pub type BST<T> = BinarySearchTree<T, BinNode<T>>;
 type SubTree<T> = BinTree<T, HeightBinNode<T>>;
 
+pub trait Search<T: Ord, N: Node<T>> {
+    fn new() -> Self;
+    fn size(&self) -> usize;
+    fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
+    where
+        F: Fn(K, &T) -> Ordering,
+        Self: 'a;
+    fn insert(&mut self, value: &T) -> Ptr<N>;
+    fn remove(&mut self, value: &T) -> Ptr<N>;
+    fn iter<'a>(&'a mut self) -> Iter<'a, T, N>
+    where
+        T: 'a,
+        N: 'a;
+}
+
 pub struct BinarySearchTree<T: Ord, N: Node<T>> {
     bin_tree: BinTree<T, N>,
 }
 
-impl<T: Ord, N: Node<T>> BinarySearchTree<T, N> {
-    pub fn new() -> Self {
+impl<T: Ord, N: Node<T>> Search<T, N> for BinarySearchTree<T, N> {
+    fn new() -> Self {
         Self {
             bin_tree: BinTree::new(),
         }
     }
 
-    pub fn size(&self) -> usize {
+    fn size(&self) -> usize {
         self.bin_tree.size()
     }
 
-    pub fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
+    fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
     where
         F: Fn(K, &T) -> Ordering,
         Self: 'a,
@@ -34,7 +49,7 @@ impl<T: Ord, N: Node<T>> BinarySearchTree<T, N> {
         None
     }
 
-    pub fn insert(&mut self, value: &T) -> Ptr<N> {
+    fn insert(&mut self, value: &T) -> Ptr<N> {
         if self.bin_tree.empty() {
             self.bin_tree.insert_as_root(value);
             return None;
@@ -68,7 +83,7 @@ impl<T: Ord, N: Node<T>> BinarySearchTree<T, N> {
         }
     }
 
-    pub fn remove(&mut self, value: &T) -> Ptr<N> {
+    fn remove(&mut self, value: &T) -> Ptr<N> {
         if self.bin_tree.empty() {
             return None;
         }
@@ -113,14 +128,16 @@ impl<T: Ord, N: Node<T>> BinarySearchTree<T, N> {
         }
     }
 
-    pub fn iter<'a>(&'a mut self) -> Iter<'a, T, N>
+    fn iter<'a>(&'a mut self) -> Iter<'a, T, N>
     where
         T: 'a,
         N: 'a,
     {
         self.bin_tree.iter()
     }
+}
 
+impl<T: Ord, N: Node<T>> BinarySearchTree<T, N> {
     fn search_node<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Ptr<N>
     where
         F: Fn(K, &T) -> Ordering,
@@ -152,18 +169,18 @@ pub struct AVLTree<T: Ord> {
     bst: BinarySearchTree<T, HeightBinNode<T>>,
 }
 
-impl<T: Ord> AVLTree<T> {
-    pub fn new() -> Self {
+impl<T: Ord> Search<T, HeightBinNode<T>> for AVLTree<T> {
+    fn new() -> Self {
         Self {
             bst: BinarySearchTree::new(),
         }
     }
 
-    pub fn size(&self) -> usize {
+    fn size(&self) -> usize {
         self.bst.size()
     }
 
-    pub fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
+    fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
     where
         F: Fn(K, &T) -> Ordering,
         Self: 'a,
@@ -171,28 +188,30 @@ impl<T: Ord> AVLTree<T> {
         self.bst.search(key, cmp)
     }
 
-    pub fn insert(&mut self, value: &T) -> Ptr<HeightBinNode<T>> {
+    fn insert(&mut self, value: &T) -> Ptr<HeightBinNode<T>> {
         unsafe {
             let node = self.bst.insert(value);
             return self.balance(node);
         }
     }
 
-    pub fn remove(&mut self, value: &T) -> Ptr<HeightBinNode<T>> {
+    fn remove(&mut self, value: &T) -> Ptr<HeightBinNode<T>> {
         unsafe {
             let node = self.bst.remove(value);
             return self.balance(node);
         }
     }
 
-    pub fn iter<'a>(&'a mut self) -> Iter<'a, T, HeightBinNode<T>>
+    fn iter<'a>(&'a mut self) -> Iter<'a, T, HeightBinNode<T>>
     where
         T: 'a,
         HeightBinNode<T>: 'a,
     {
         self.bst.iter()
     }
+}
 
+impl<T: Ord> AVLTree<T> {
     fn bal_fac(node: NonNull<HeightBinNode<T>>) -> usize {
         unsafe {
             let a = HeightBinNode::stature(node.as_ref().lc());

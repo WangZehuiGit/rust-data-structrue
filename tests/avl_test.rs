@@ -1,5 +1,5 @@
 extern crate rust_data_structure;
-use rust_data_structure::bin_tree::search::AVLTree;
+use rust_data_structure::bin_tree::search::{Search, AVLTree};
 
 #[test]
 fn test_avl() {

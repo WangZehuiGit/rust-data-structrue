@@ -1,5 +1,5 @@
 extern crate rust_data_structure;
-use rust_data_structure::bin_tree::search::BST;
+use rust_data_structure::bin_tree::search::{Search, BST};
 
 #[test]
 fn test_bst() {
