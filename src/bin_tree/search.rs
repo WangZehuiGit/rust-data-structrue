@@ -3,6 +3,7 @@ use super::node::Node;
 use super::{BinNode, BinTree, Iter, Ptr};
 use std::cmp::Ordering;
 use std::ptr::NonNull;
+use std::marker::PhantomData;
 
 pub type BST<T> = BinarySearchTree<T, BinNode<T>>;
 type SubTree<T> = BinTree<T, HeightBinNode<T>>;
@@ -20,6 +21,58 @@ pub trait Search<T: Ord, N: Node<T>> {
     where
         T: 'a,
         N: 'a;
+}
+
+pub struct BinarySearchTree0<T: Ord, N: super::Node<T>> {
+    root: Ptr<N>,
+    size: usize,
+    marker: PhantomData<T>
+}
+
+impl<T: Ord, N: super::Node<T>> BinarySearchTree0<T, N> {
+    fn search_node<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Ptr<N>
+    where
+        F: Fn(K, &T) -> Ordering,
+        Self: 'a,
+    {
+        let mut node = self.root;
+
+        unsafe {
+            while let Some(mut parent) = node {
+                match cmp(key, parent.as_mut().get()) {
+                    Ordering::Equal => {
+                        return node;
+                    }
+                    Ordering::Less => {
+                        node = parent.as_ref().lc();
+                    }
+                    Ordering::Greater => {
+                        node = parent.as_ref().rc();
+                    }
+                }
+            }
+        }
+
+        None
+    }
+}
+
+impl<T: Ord, N: super::Node<T>> BinarySearchTree0<T, N> {
+    fn size(&self) -> usize {
+        self.size
+    }
+
+    fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
+    where
+        F: Fn(K, &T) -> Ordering,
+        Self: 'a,
+    {
+        if let Some(node) = self.search_node(key, cmp) {
+            return unsafe { Some((*node.as_ptr()).get()) };
+        }
+
+        None
+    }
 }
 
 pub struct BinarySearchTree<T: Ord, N: Node<T>> {

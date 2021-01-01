@@ -1,7 +1,7 @@
 use super::search::Ordered;
 pub use super::sort::Sort;
 use super::stack::Stack;
-use super::{free, malloc};
+use super::utility::{free, malloc};
 use std::cmp::PartialEq;
 use std::fmt;
 use std::iter::DoubleEndedIterator;

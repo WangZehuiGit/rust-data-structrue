@@ -3,13 +3,148 @@ mod height;
 mod node;
 pub mod search;
 
-use super::malloc_val;
+use super::utility::{free, malloc_val};
 use std::marker::PhantomData;
 use std::ptr::{self, NonNull};
 
 type Ptr<T> = Option<NonNull<T>>;
 type NodePtr<T> = Ptr<BinNode<T>>;
 pub type RawBinTree<T> = BinTree<T, BinNode<T>>;
+
+pub trait Node<T>: Sized {
+    fn get(&mut self) -> &mut T;
+    fn parent(&self) -> Ptr<Self>;
+    fn lc(&self) -> Ptr<Self>;
+    fn rc(&self) -> Ptr<Self>;
+    fn insert_lc(&mut self);
+    fn insert_rc(&mut self);
+
+    fn swap(mut a: NonNull<Self>, mut b: NonNull<Self>) {
+        unsafe {
+            ptr::swap(a.as_mut().get(), b.as_mut().get());
+        }
+    }
+
+    fn is_root(&self) -> bool {
+        self.parent() == None
+    }
+
+    fn is_lc(&self) -> bool {
+        let self_ptr = self as *const Self;
+
+        unsafe {
+            if let Some(node) = self.parent() {
+                if let Some(lc) = node.as_ref().lc() {
+                    return self_ptr == lc.as_ptr();
+                }
+            }
+
+            false
+        }
+    }
+    
+    fn has_lc(&self) -> bool {
+        self.lc() != None
+    }
+
+    fn has_rc(&self) -> bool {
+        self.rc() != None
+    }
+
+    fn is_rc(&self) -> bool {
+        !self.is_lc() && !self.is_root()
+    }
+    fn is_leaf(&self) -> bool {
+        !self.has_lc() && !self.has_rc()
+    }
+
+    fn has_double_branch(&self) -> bool {
+        self.has_lc() && self.has_rc()
+    }
+
+    fn succ(&self) -> Ptr<Self> {
+        if let Some(mut succ) = self.rc() {
+            while let Some(next) = unsafe {succ.as_ref().lc()} {
+                succ = next;
+            }
+            return Some(succ);
+        } else {
+            if self.is_lc() {
+                return self.parent();
+            } else {
+                if let Some(mut child) = self.parent() {
+                    if unsafe {child.as_ref().is_lc()} {
+                        return unsafe {child.as_ref().parent()};
+                    }
+                    while let Some(next) = unsafe {child.as_ref().parent()} {
+                        child = next;
+                        if unsafe {child.as_ref().is_lc()} {
+                            return unsafe {child.as_ref().parent()};
+                        }
+                    }
+                    return None;
+                } else {
+                    return None;
+                }
+            }
+        }
+    }
+
+    fn next(&self) -> Ptr<Self> {
+        if self.has_lc() {
+            return self.lc();
+        } else if self.has_rc() {
+            return self.rc();
+        } else {
+            if let Some(mut child) = self.parent() {
+                if self.is_lc() {
+                    return unsafe {child.as_ref().rc()};
+                }
+                while let Some(next) = unsafe {child.as_ref().parent()} {
+                    if unsafe {child.as_ref().is_lc()} {
+                        return unsafe {next.as_ref().rc()};
+                    }
+                    child = next;
+                }
+                return None;
+            } else {
+                return None;
+            }
+        }
+    }
+    
+    fn size_of(subtree: NonNull<Self>) -> usize {
+        let mut size = 1;
+
+        unsafe {
+            if let Some(lc) = subtree.as_ref().lc() {
+                size += Self::size_of(lc);
+            }
+            if let Some(rc) = subtree.as_ref().rc() {
+                size += Self::size_of(rc);
+            }
+        }
+
+        size
+    }
+
+    fn remove_at(subtree: *mut Self) -> usize {
+        let mut size = 1;
+
+        unsafe {
+            if let Some(lc) = (*subtree).lc() {
+                size += Self::remove_at(lc.as_ptr());
+            }
+            if let Some(rc) = (*subtree).rc() {
+                size += Self::remove_at(rc.as_ptr());
+            }
+        }
+
+        free(subtree, 1).unwrap();
+
+        size
+    }
+}
 
 #[derive(Debug)]
 pub struct InsertErr(&'static str);

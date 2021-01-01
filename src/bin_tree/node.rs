@@ -1,4 +1,4 @@
-use super::super::{free, malloc_val};
+use super::super::utility::{free, malloc_val};
 use super::color::Color;
 use super::{InsertErr, Ptr};
 use std::ptr::{self, NonNull};
