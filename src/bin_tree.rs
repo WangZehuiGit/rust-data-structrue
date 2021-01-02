@@ -3,7 +3,7 @@ mod height;
 mod node;
 pub mod search;
 
-use super::utility::{free, malloc_val};
+use super::utility::malloc_val;
 use std::marker::PhantomData;
 use std::ptr::{self, NonNull};
 
@@ -14,15 +14,13 @@ pub type RawBinTree<T> = BinTree<T, BinNode<T>>;
 pub trait Node<T>: Sized {
     fn get(&mut self) -> &mut T;
     fn parent(&self) -> Ptr<Self>;
-    fn lc(&self) -> Ptr<Self>;
-    fn rc(&self) -> Ptr<Self>;
+    fn lc(&self) -> Option<Box<Self>>;
+    fn rc(&self) -> Option<Box<Self>>;
     fn insert_lc(&mut self);
     fn insert_rc(&mut self);
 
-    fn swap(mut a: NonNull<Self>, mut b: NonNull<Self>) {
-        unsafe {
-            ptr::swap(a.as_mut().get(), b.as_mut().get());
-        }
+    unsafe fn swap(a: &mut Self, b: &mut Self) {
+        ptr::swap(a.get(), b.get());
     }
 
     fn is_root(&self) -> bool {
@@ -35,7 +33,7 @@ pub trait Node<T>: Sized {
         unsafe {
             if let Some(node) = self.parent() {
                 if let Some(lc) = node.as_ref().lc() {
-                    return self_ptr == lc.as_ptr();
+                    return self_ptr == Box::into_raw(lc);
                 }
             }
 
@@ -44,11 +42,11 @@ pub trait Node<T>: Sized {
     }
     
     fn has_lc(&self) -> bool {
-        self.lc() != None
+        self.lc().is_some()
     }
 
     fn has_rc(&self) -> bool {
-        self.rc() != None
+        self.rc().is_some()
     }
 
     fn is_rc(&self) -> bool {
@@ -62,24 +60,24 @@ pub trait Node<T>: Sized {
         self.has_lc() && self.has_rc()
     }
 
-    fn succ(&self) -> Ptr<Self> {
-        if let Some(mut succ) = self.rc() {
-            while let Some(next) = unsafe {succ.as_ref().lc()} {
+    fn succ(&mut self) -> Option<&mut Self> {
+        if let Some(mut succ) = self.rc().as_mut() {
+            while let Some(next) = succ.lc().as_mut() {
                 succ = next;
             }
             return Some(succ);
         } else {
             if self.is_lc() {
-                return self.parent();
+                return unsafe {self.parent().map_or(None, |n| n.as_ptr().as_mut())};
             } else {
                 if let Some(mut child) = self.parent() {
                     if unsafe {child.as_ref().is_lc()} {
-                        return unsafe {child.as_ref().parent()};
+                        return unsafe {child.as_ref().parent().map_or(None, |n| n.as_ptr().as_mut())};
                     }
                     while let Some(next) = unsafe {child.as_ref().parent()} {
                         child = next;
                         if unsafe {child.as_ref().is_lc()} {
-                            return unsafe {child.as_ref().parent()};
+                            return unsafe {child.as_ref().parent().map_or(None, |n| n.as_ptr().as_mut())};
                         }
                     }
                     return None;
@@ -90,19 +88,19 @@ pub trait Node<T>: Sized {
         }
     }
 
-    fn next(&self) -> Ptr<Self> {
-        if self.has_lc() {
-            return self.lc();
-        } else if self.has_rc() {
-            return self.rc();
+    fn next(&mut self) -> Option<&mut Self> {
+        if let Some(lc) = self.lc().as_mut() {
+            return Some(lc);
+        } else if let Some(rc) = self.rc().as_mut() {
+            return Some(rc);
         } else {
             if let Some(mut child) = self.parent() {
                 if self.is_lc() {
-                    return unsafe {child.as_ref().rc()};
+                    return unsafe {child.as_ref().rc().as_mut().map(|b| b.as_mut())};
                 }
                 while let Some(next) = unsafe {child.as_ref().parent()} {
                     if unsafe {child.as_ref().is_lc()} {
-                        return unsafe {next.as_ref().rc()};
+                        return unsafe {child.as_ref().rc().as_mut().map(|b| b.as_mut())};
                     }
                     child = next;
                 }
@@ -113,34 +111,15 @@ pub trait Node<T>: Sized {
         }
     }
     
-    fn size_of(subtree: NonNull<Self>) -> usize {
+    fn size_of(subtree: &Self) -> usize {
         let mut size = 1;
 
-        unsafe {
-            if let Some(lc) = subtree.as_ref().lc() {
-                size += Self::size_of(lc);
-            }
-            if let Some(rc) = subtree.as_ref().rc() {
-                size += Self::size_of(rc);
-            }
+        if let Some(lc) = subtree.lc() {
+            size += Self::size_of(&lc);
         }
-
-        size
-    }
-
-    fn remove_at(subtree: *mut Self) -> usize {
-        let mut size = 1;
-
-        unsafe {
-            if let Some(lc) = (*subtree).lc() {
-                size += Self::remove_at(lc.as_ptr());
-            }
-            if let Some(rc) = (*subtree).rc() {
-                size += Self::remove_at(rc.as_ptr());
-            }
+        if let Some(rc) = subtree.rc() {
+            size += Self::size_of(&rc);
         }
-
-        free(subtree, 1).unwrap();
 
         size
     }

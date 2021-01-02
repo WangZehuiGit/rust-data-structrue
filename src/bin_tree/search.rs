@@ -24,30 +24,30 @@ pub trait Search<T: Ord, N: Node<T>> {
 }
 
 pub struct BinarySearchTree0<T: Ord, N: super::Node<T>> {
-    root: Ptr<N>,
+    root: Option<Box<N>>,
     size: usize,
     marker: PhantomData<T>
 }
 
 impl<T: Ord, N: super::Node<T>> BinarySearchTree0<T, N> {
-    fn search_node<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Ptr<N>
+    fn search_node<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut N>
     where
         F: Fn(K, &T) -> Ordering,
         Self: 'a,
     {
-        let mut node = self.root;
+        let mut node = self.root.as_mut().map(|b| b.as_mut());
 
         unsafe {
-            while let Some(mut parent) = node {
-                match cmp(key, parent.as_mut().get()) {
+            while let Some(parent) = node {
+                match cmp(key, parent.get()) {
                     Ordering::Equal => {
-                        return node;
+                        return Some(parent);
                     }
                     Ordering::Less => {
-                        node = parent.as_ref().lc();
+                        node = parent.lc().as_mut().map(|b| b.as_mut());
                     }
                     Ordering::Greater => {
-                        node = parent.as_ref().rc();
+                        node = parent.rc().as_mut().map(|b| b.as_mut());
                     }
                 }
             }
@@ -62,16 +62,12 @@ impl<T: Ord, N: super::Node<T>> BinarySearchTree0<T, N> {
         self.size
     }
 
-    fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&'a mut T>
+    fn search<'a, K: Copy, F>(&mut self, key: K, cmp: F) -> Option<&mut T>
     where
         F: Fn(K, &T) -> Ordering,
         Self: 'a,
     {
-        if let Some(node) = self.search_node(key, cmp) {
-            return unsafe { Some((*node.as_ptr()).get()) };
-        }
-
-        None
+        return self.search_node(key, cmp).map(|node| node.get());
     }
 }
 
