@@ -1,2 +1,2 @@
-# rust-data-structrue
-my rust data structrue library
+# rust-data-structure
+my rust data structure library
